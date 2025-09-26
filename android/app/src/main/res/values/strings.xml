@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">AstroGuru</string>
+    <string name="title_activity_main">AstroGuru</string>
+    <string name="package_name">com.astroguru.app</string>
+    <string name="custom_url_scheme">com.astroguru.app</string>
+</resources>

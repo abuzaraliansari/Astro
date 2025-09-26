@@ -1,0 +1,1512 @@
+// ================================
+// IMPORTS & DEPENDENCIES  
+// ================================
+import React, { useState, useEffect, useRef } from 'react';
+import { GoogleLogin } from '@react-oauth/google';
+import { Capacitor } from '@capacitor/core';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../AuthContext';
+import { googleSignup, googleLogin, searchPlaces } from '../api';
+import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
+
+// ================================
+// MAIN COMPONENT
+// ================================
+const Auth = ({ onLoginSuccess }) => {
+  // ================================
+  // HOOKS & BASIC STATE
+  // ================================
+  const navigate = useNavigate();
+  const { setUser } = useAuth();
+
+  // Core auth state
+  const [isSignup, setIsSignup] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+  const [message, setMessage] = useState('');
+  const [googleCredential, setGoogleCredential] = useState(null);
+
+  // ================================
+  // MODAL & UI STATE  
+  // ================================
+  const [showBirthDetailsPopup, setShowBirthDetailsPopup] = useState(false);
+  const [showWaitingListModal, setShowWaitingListModal] = useState(false);
+  const [isNewUser, setIsNewUser] = useState(false);
+  const [googleUserInfo, setGoogleUserInfo] = useState(null);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
+  const [clockMode, setClockMode] = useState('hour');
+
+  const [showReligionDropdown, setShowReligionDropdown] = useState(false);
+  // ================================
+  // LOCATION & SEARCH STATE
+  // ================================
+  const [selectedCountry, setSelectedCountry] = useState({
+    name: 'India',
+    code: 'in',
+    flag: '🇮🇳'
+  });
+  const [showCountryDropdown, setShowCountryDropdown] = useState(false);
+  const [placeSuggestions, setPlaceSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isLoadingPlaces, setIsLoadingPlaces] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // ================================
+  // REFS & CONSTANTS
+  // ================================
+  const placeInputRef = useRef(null);
+  const searchTimeoutRef = useRef(null);
+  const contactNumber = '+91-9990553762';
+
+  // ================================
+  // BIRTH DETAILS STATE
+  // ================================
+const [birthDetails, setBirthDetails] = useState({
+    full_name: '',
+    religion: 'Hindu', // ✅ NEW: Religion field with default
+    birth_day: '',
+    birth_month: '',
+    birth_year: '',
+    birth_time: '',
+    birth_place: '',
+    timezone: 'Asia/Kolkata'
+  });
+
+  // ================================
+  // DATA CONSTANTS
+  // ================================
+
+  // ✅ NEW: Religion options
+  const religions = [
+    { value: 'Hindu', label: 'Hindu', icon: '🕉️' },
+    { value: 'Islam', label: 'Islam', icon: '☪️' },
+    { value: 'Christianity', label: 'Christianity', icon: '✝️' },
+    { value: 'Sikhism', label: 'Sikhism', icon: '☬' },
+    { value: 'Buddhism', label: 'Buddhism', icon: '☸️' },
+    { value: 'Jainism', label: 'Jainism', icon: '🤚' },
+    { value: 'Judaism', label: 'Judaism', icon: '✡️' },
+    { value: 'Zoroastrianism', label: 'Zoroastrianism', icon: '🔥' },
+    { value: 'Bahai', label: 'Baháʼí', icon: '⭐' },
+    { value: 'Other', label: 'Other', icon: '🌍' }
+  ];
+
+  // Country options
+  const countries = [
+    { name: 'India', code: 'in', flag: '🇮🇳' },
+    { name: 'United States', code: 'us', flag: '🇺🇸' },
+    { name: 'United Kingdom', code: 'gb', flag: '🇬🇧' },
+    { name: 'Canada', code: 'ca', flag: '🇨🇦' },
+    { name: 'Australia', code: 'au', flag: '🇦🇺' },
+    { name: 'Germany', code: 'de', flag: '🇩🇪' },
+    { name: 'France', code: 'fr', flag: '🇫🇷' },
+    { name: 'Italy', code: 'it', flag: '🇮🇹' },
+    { name: 'Spain', code: 'es', flag: '🇪🇸' },
+    { name: 'Netherlands', code: 'nl', flag: '🇳🇱' },
+    { name: 'Switzerland', code: 'ch', flag: '🇨🇭' },
+    { name: 'Sweden', code: 'se', flag: '🇸🇪' },
+    { name: 'Norway', code: 'no', flag: '🇳🇴' },
+    { name: 'Denmark', code: 'dk', flag: '🇩🇰' },
+    { name: 'Japan', code: 'jp', flag: '🇯🇵' },
+    { name: 'South Korea', code: 'kr', flag: '🇰🇷' },
+    { name: 'China', code: 'cn', flag: '🇨🇳' },
+    { name: 'Singapore', code: 'sg', flag: '🇸🇬' },
+    { name: 'Malaysia', code: 'my', flag: '🇲🇾' },
+    { name: 'Thailand', code: 'th', flag: '🇹🇭' },
+    { name: 'UAE', code: 'ae', flag: '🇦🇪' },
+    { name: 'Saudi Arabia', code: 'sa', flag: '🇸🇦' },
+    { name: 'South Africa', code: 'za', flag: '🇿🇦' },
+    { name: 'Brazil', code: 'br', flag: '🇧🇷' },
+    { name: 'Mexico', code: 'mx', flag: '🇲🇽' },
+    { name: 'Argentina', code: 'ar', flag: '🇦🇷' },
+    { name: 'New Zealand', code: 'nz', flag: '🇳🇿' }
+  ];
+
+  // Date picker options
+  const days = Array.from({ length: 31 }, (_, i) => i + 1);
+  const months = [
+    { value: 1, name: 'January' },
+    { value: 2, name: 'February' },
+    { value: 3, name: 'March' },
+    { value: 4, name: 'April' },
+    { value: 5, name: 'May' },
+    { value: 6, name: 'June' },
+    { value: 7, name: 'July' },
+    { value: 8, name: 'August' },
+    { value: 9, name: 'September' },
+    { value: 10, name: 'October' },
+    { value: 11, name: 'November' },
+    { value: 12, name: 'December' }
+  ];
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: 100 }, (_, i) => currentYear - i);
+
+  // ================================
+  // PLATFORM CONFIGURATION
+  // ================================
+  const WEB_CLIENT_ID = process.env.REACT_APP_GOOGLE_WEB_CLIENT_ID ||
+    "1039681193782-obmnqsvo8dvct21i1fum6dov74i0iqn2.apps.googleusercontent.com";
+  const isNative = Capacitor.isNativePlatform && Capacitor.isNativePlatform();
+
+  // ================================
+  // VALIDATION FUNCTIONS
+  // ================================
+  const validateBirthDetails = () => {
+    const required = ['full_name', 'religion', 'birth_day', 'birth_month', 'birth_year', 'birth_time', 'birth_place'];
+    const missing = required.filter(field => !birthDetails[field]);
+    
+    if (missing.length > 0) {
+      setMessage(`⚠️ Please fill in all required fields: ${missing.join(', ')}`);
+      return false;
+    }
+    return true;
+  };
+  // ✅ NEW: Religion selection handler
+  const handleReligionSelect = (religion) => {
+    handleBirthDetailsChange('religion', religion.value);
+    setShowReligionDropdown(false);
+  };
+
+  const toggleReligionDropdown = () => {
+    setShowReligionDropdown(!showReligionDropdown);
+  };
+
+
+  // ✅ NEW: Handle Registration Completion
+  const handleRegistrationComplete = async () => {
+    if (!googleUserInfo || !validateBirthDetails()) {
+      return;
+    }
+
+    setIsLoading(true);
+    setMessage('📝 Completing registration...');
+
+    try {
+      // Format birth date
+      const birthDate = `${birthDetails.birth_year}-${birthDetails.birth_month.toString().padStart(2, '0')}-${birthDetails.birth_day.toString().padStart(2, '0')}`;
+      
+      // Prepare registration data
+      const registrationData = {
+        token: googleCredential, // Use the Google JWT token
+        profile: {
+          full_name: birthDetails.full_name.trim(),
+          religion: birthDetails.religion,
+          birth_date: birthDate,
+          birth_time: birthDetails.birth_time,
+          birth_place: birthDetails.birth_place.trim(),
+          timezone: birthDetails.timezone
+        }
+      };
+
+      console.log('📝 Sending registration data:', registrationData);
+
+      // Use your existing googleSignup function
+      const response = await googleSignup(googleCredential, registrationData.profile);
+
+      if (response.data.success) {
+        console.log('✅ Registration successful!');
+        
+        if (response.data.waitingList) {
+          // User registered but on waiting list
+          setShowWaitingListModal(true);
+          setShowBirthDetailsPopup(false);
+          setMessage('');
+        } else {
+          // User registered and active
+          setUser(response.data.user);
+          setMessage(response.data.message);
+          if (onLoginSuccess) onLoginSuccess(response.data.user);
+          setShowBirthDetailsPopup(false);
+          setTimeout(() => navigate('/chat'), 2000);
+        }
+        
+        // Clear form data
+        clearBirthDetails();
+        setGoogleCredential(null);
+        setGoogleUserInfo(null);
+      } else {
+        throw new Error(response.data.error || 'Registration failed');
+      }
+    } catch (error) {
+      console.error('❌ Registration error:', error);
+      
+      if (error.response?.data) {
+        const errorData = error.response.data;
+        
+        if (errorData.waitingList) {
+          setShowWaitingListModal(true);
+          setShowBirthDetailsPopup(false);
+          setMessage('');
+        } else if (errorData.userExists) {
+          setMessage(`❌ ${errorData.message}`);
+          setShowBirthDetailsPopup(false);
+          setTimeout(() => {
+            setIsSignup(false);
+            setMessage('Account exists. Switched to login mode.');
+          }, 3000);
+        } else {
+          setMessage(`❌ ${errorData.message || 'Registration failed'}`);
+        }
+      } else {
+        setMessage(`❌ Registration failed: ${error.message}`);
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // ================================
+  // CLOCK HELPER FUNCTIONS
+  // ================================
+  const getHourAngle = () => {
+    if (!birthDetails.birth_time) return 0;
+    const [hours, minutes] = birthDetails.birth_time.split(':');
+    const hour12 = parseInt(hours) % 12;
+    return (hour12 * 30) + (parseInt(minutes) * 0.5);
+  };
+
+  const getMinuteAngle = () => {
+    if (!birthDetails.birth_time) return 0;
+    const [hours, minutes] = birthDetails.birth_time.split(':');
+    return parseInt(minutes) * 6;
+  };
+
+  const getTimePeriod = () => {
+    if (!birthDetails.birth_time) return 'AM';
+    const [hours] = birthDetails.birth_time.split(':');
+    return parseInt(hours) >= 12 ? 'PM' : 'AM';
+  };
+
+  const getSelectedHour = () => {
+    if (!birthDetails.birth_time) return 12;
+    const [hours] = birthDetails.birth_time.split(':');
+    const hour24 = parseInt(hours);
+    return hour24 === 0 ? 12 : hour24 > 12 ? hour24 - 12 : hour24;
+  };
+
+  const getSelectedMinute = () => {
+    if (!birthDetails.birth_time) return 0;
+    const [hours, minutes] = birthDetails.birth_time.split(':');
+    return parseInt(minutes);
+  };
+
+  const formatTimeDisplay = (timeString) => {
+    if (!timeString) return 'Select Birth Time';
+    const [hours, minutes] = timeString.split(':');
+    const hour24 = parseInt(hours);
+    const hour12 = hour24 === 0 ? 12 : hour24 > 12 ? hour24 - 12 : hour24;
+    const period = hour24 >= 12 ? 'PM' : 'AM';
+    return `${hour12.toString().padStart(2, '0')}:${minutes} ${period}`;
+  };
+
+  // ================================
+  // DATE & TIME HANDLERS
+  // ================================
+  const handleHourClick = (hour) => {
+    const currentPeriod = getTimePeriod();
+    let hour24 = hour;
+
+    if (currentPeriod === 'PM' && hour !== 12) {
+      hour24 = hour + 12;
+    } else if (currentPeriod === 'AM' && hour === 12) {
+      hour24 = 0;
+    }
+
+    const currentMinute = birthDetails.birth_time ?
+      birthDetails.birth_time.split(':')[1] : '00';
+
+    const newTime = `${hour24.toString().padStart(2, '0')}:${currentMinute}`;
+    handleBirthDetailsChange('birth_time', newTime);
+    setClockMode('minute');
+  };
+
+  const handleMinuteClick = (minute) => {
+    const currentHour = birthDetails.birth_time ?
+      birthDetails.birth_time.split(':')[0] : '12';
+
+    const newTime = `${currentHour}:${minute.toString().padStart(2, '0')}`;
+    handleBirthDetailsChange('birth_time', newTime);
+  };
+
+  const toggleAMPM = (period) => {
+    if (!birthDetails.birth_time) {
+      handleBirthDetailsChange('birth_time', period === 'AM' ? '09:00' : '21:00');
+      return;
+    }
+
+    const [hours, minutes] = birthDetails.birth_time.split(':');
+    let newHour = parseInt(hours);
+
+    if (period === 'AM' && newHour >= 12) {
+      newHour -= 12;
+    } else if (period === 'PM' && newHour < 12) {
+      newHour += 12;
+    }
+
+    const formattedTime = `${newHour.toString().padStart(2, '0')}:${minutes}`;
+    handleBirthDetailsChange('birth_time', formattedTime);
+  };
+
+  // ================================
+  // LOCATION SEARCH FUNCTIONS
+  // ================================
+  const handleSearchQueryChange = async (value) => {
+    setSearchQuery(value);
+
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    if (!value || value.length < 2) {
+      setPlaceSuggestions([]);
+      return;
+    }
+
+    searchTimeoutRef.current = setTimeout(async () => {
+      setIsLoadingPlaces(true);
+      try {
+        const response = await searchPlaces(value, selectedCountry.code.toUpperCase());
+        if (response.data && response.data.success) {
+          const suggestions = response.data.places || [];
+          setPlaceSuggestions(suggestions);
+        } else {
+          setPlaceSuggestions([]);
+        }
+      } catch (error) {
+        console.error('❌ Place search error:', error);
+        setPlaceSuggestions([]);
+      } finally {
+        setIsLoadingPlaces(false);
+      }
+    }, 300);
+  };
+
+  const handlePlaceSelect = (place) => {
+    try {
+      let formattedPlace = '';
+
+      if (place.main_text && place.secondary_text) {
+        const mainText = place.main_text.trim();
+        const secondaryText = place.secondary_text.trim();
+        formattedPlace = `${mainText}, ${secondaryText}`;
+      } else {
+        formattedPlace = place.description || place.formatted_address || place.main_text || 'Selected Location';
+      }
+
+      handleBirthDetailsChange('birth_place', formattedPlace);
+      setShowSuggestions(false);
+      setTimeout(() => setPlaceSuggestions([]), 200);
+    } catch (error) {
+      console.error('❌ Error selecting place:', error);
+      setPlaceSuggestions([]);
+      setShowSuggestions(false);
+    }
+  };
+
+  const handlePlaceKeyDown = (event, place) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      handlePlaceSelect(place);
+    } else if (event.key === 'Escape') {
+      setShowSuggestions(false);
+    }
+  };
+
+  const handlePlaceInputKeyDown = (event) => {
+    if (event.key === 'Escape') {
+      setShowSuggestions(false);
+      setPlaceSuggestions([]);
+    }
+  };
+
+  // ================================
+  // COUNTRY SELECTION FUNCTIONS
+  // ================================
+  const handleCountrySelect = (country) => {
+    setSelectedCountry(country);
+    setShowCountryDropdown(false);
+    handleBirthDetailsChange('birth_place', '');
+    setPlaceSuggestions([]);
+    setSearchQuery('');
+  };
+
+  const toggleCountryDropdown = () => {
+    setShowCountryDropdown(!showCountryDropdown);
+  };
+
+  // ================================
+  // FORM VALIDATION FUNCTIONS
+  // ================================
+  const isValidDate = () => {
+    const { birth_day, birth_month, birth_year } = birthDetails;
+    if (!birth_day || !birth_month || !birth_year) return false;
+
+    const day = parseInt(birth_day);
+    const month = parseInt(birth_month);
+    const year = parseInt(birth_year);
+    const date = new Date(year, month - 1, day);
+
+    return date.getFullYear() === year &&
+      date.getMonth() === month - 1 &&
+      date.getDate() === day;
+  };
+
+  const getDaysInMonth = () => {
+    if (!birthDetails.birth_month || !birthDetails.birth_year) return 31;
+    const month = parseInt(birthDetails.birth_month);
+    const year = parseInt(birthDetails.birth_year);
+    return new Date(year, month, 0).getDate();
+  };
+
+  // ================================
+  // BIRTH DETAILS MANAGEMENT
+  // ================================
+  const handleBirthDetailsChange = (field, value) => {
+    setBirthDetails(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const clearBirthDetails = () => {
+    setBirthDetails({
+      full_name: '',
+      religion: 'Hindu',
+      birth_day: '',
+      birth_month: '',
+      birth_year: '',
+      birth_time: '',
+      birth_place: '',
+      timezone: 'Asia/Kolkata'
+    });
+    setPlaceSuggestions([]);
+    setShowSuggestions(false);
+  };
+
+  // ================================
+  // ✅ UPDATED GOOGLE AUTHENTICATION - INTEGRATES WITH YOUR BACKEND
+  // ================================
+  const handleGoogleAuth = async (credentialResponse) => {
+    if (!credentialResponse?.credential) {
+      setMessage('❌ Google authentication failed. Please try again.');
+      return;
+    }
+
+    setIsLoading(true);
+    setMessage('🔐 Connecting to the cosmos...');
+    console.log('🔐 Starting Google authentication...');
+
+    try {
+      // Store the credential for potential registration
+      setGoogleCredential(credentialResponse.credential);
+
+      // Decode the JWT token to get user info for display purposes
+      const base64Url = credentialResponse.credential.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const jsonPayload = decodeURIComponent(atob(base64).split('').map(function (c) {
+        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+      }).join(''));
+
+      const userInfo = JSON.parse(jsonPayload);
+      console.log('👤 Google user info:', userInfo);
+      setGoogleUserInfo(userInfo);
+
+      // ✅ Try login first (your existing googleLogin function handles user existence check)
+      try {
+        console.log('🔍 Attempting login first...');
+        const response = await googleLogin(credentialResponse.credential);
+
+        if (response.data.success) {
+          // ✅ Login successful - user exists and is active
+          console.log('✅ Login successful!');
+          setUser(response.data.user);
+          setMessage(response.data.message);
+          if (onLoginSuccess) onLoginSuccess(response.data.user);
+          setTimeout(() => navigate('/home'), 1500);
+        }
+      } catch (loginError) {
+        console.log('🔍 Login attempt result:', loginError.response?.data);
+        
+        if (loginError.response?.data) {
+          const errorData = loginError.response.data;
+
+          if (errorData.waitingList) {
+            // ✅ User exists but inactive - show waiting list modal
+            console.log('⏳ User exists but not active - showing waiting list modal');
+            setShowWaitingListModal(true);
+            setMessage('');
+          } else if (errorData.needsSignup) {
+            // ✅ User doesn't exist - show registration modal
+            console.log('🆕 New user - showing registration modal');
+            setBirthDetails(prev => ({
+              ...prev,
+              full_name: userInfo.name || ''
+            }));
+            setShowBirthDetailsPopup(true);
+            setMessage('');
+          } else {
+            // Other login errors
+            setMessage(`❌ ${errorData.message || 'Login failed'}`);
+          }
+        } else {
+          // Network or other errors
+          setMessage('❌ Network error. Please check your connection.');
+        }
+      }
+
+    } catch (error) {
+      console.error('❌ Authentication error:', error);
+      setMessage(`❌ Authentication failed: ${error.message}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleNativeGoogleAuth = async () => {
+    setIsLoading(true);
+    setMessage('');
+
+    try {
+      await GoogleAuth.initialize({
+        clientId: WEB_CLIENT_ID,
+        scopes: ['profile', 'email'],
+        grantOfflineAccess: true,
+      });
+
+      const result = await GoogleAuth.signIn();
+      const credential = result.authentication?.idToken || result.idToken;
+
+      if (!credential) {
+        throw new Error('No ID token received from Google Auth');
+      }
+
+      // Use the same logic as web Google auth
+      await handleGoogleAuth({ credential });
+
+    } catch (err) {
+      console.error('❌ Native Google Auth Failed:', err);
+
+      if (err.message?.includes('popup_closed_by_user')) {
+        setMessage('⚠️ Sign-in was cancelled. Please try again.');
+      } else if (err.message?.includes('SIGN_IN_CANCELLED')) {
+        setMessage('⚠️ Sign-in was cancelled by user.');
+      } else if (err.message?.includes('NETWORK_ERROR')) {
+        setMessage('❌ Network error. Please check your internet connection.');
+      } else {
+        setMessage(`❌ Google authentication failed: ${err.message || 'Unknown error'}`);
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const performLogin = async (credential) => {
+    setIsLoading(true);
+    setMessage('');
+
+    try {
+      const response = await googleLogin(credential);
+
+      if (response.data.success) {
+        setUser(response.data.user);
+        setMessage(response.data.message);
+        if (onLoginSuccess) onLoginSuccess(response.data.user);
+        setTimeout(() => navigate('/home'), 1500);
+      }
+    } catch (err) {
+      console.error('❌ Login error:', err);
+
+      if (err.response?.data) {
+        const errorData = err.response.data;
+
+        if (errorData.waitingList) {
+          setShowWaitingListModal(true);
+          setMessage('');
+        } else if (errorData.needsSignup && !isSignup) {
+          setMessage(`❌ ${errorData.message}`);
+          setTimeout(() => {
+            setIsSignup(true);
+            setMessage('Switched to signup mode. Please create an account first.');
+          }, 3000);
+        } else {
+          setMessage(`❌ ${errorData.message || 'Login failed'}`);
+        }
+      } else {
+        setMessage('❌ Network error. Please check your connection.');
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // ================================
+  // BIRTH DETAILS SUBMISSION
+  // ================================
+  const handleBirthDetailsSubmit = async () => {
+    // Validation
+    if (!birthDetails.full_name.trim()) {
+      setMessage('❌ Please enter your full name');
+      return;
+    }
+    if (!isValidDate()) {
+      setMessage('❌ Please select a valid birth date');
+      return;
+    }
+    if (!birthDetails.birth_time.trim()) {
+      setMessage('❌ Please enter your birth time');
+      return;
+    }
+    if (!birthDetails.birth_place.trim()) {
+      setMessage('❌ Please enter your birth place');
+      return;
+    }
+
+    setIsLoading(true);
+    setMessage('');
+
+    try {
+      const birthDate = `${birthDetails.birth_year}-${birthDetails.birth_month.toString().padStart(2, '0')}-${birthDetails.birth_day.toString().padStart(2, '0')}`;
+      const profile = {
+        full_name: birthDetails.full_name.trim(),
+        birth_date: birthDate,
+        birth_time: birthDetails.birth_time,
+        birth_place: birthDetails.birth_place.trim(),
+        timezone: birthDetails.timezone
+      };
+
+      const response = await googleSignup(googleCredential, profile);
+
+      if (response.data.success) {
+        if (response.data.waitingList) {
+          setShowWaitingListModal(true);
+          setShowBirthDetailsPopup(false);
+          clearBirthDetails();
+          setGoogleCredential(null);
+        } else {
+          setUser(response.data.user);
+          setMessage(response.data.message);
+          if (onLoginSuccess) onLoginSuccess(response.data.user);
+          setShowBirthDetailsPopup(false);
+          clearBirthDetails();
+          setGoogleCredential(null);
+          setTimeout(() => navigate('/chat'), 2000);
+        }
+      }
+    } catch (err) {
+      console.error('❌ Signup error:', err);
+
+      if (err.response?.data) {
+        const errorData = err.response.data;
+
+        if (errorData.waitingList) {
+          setShowWaitingListModal(true);
+          setShowBirthDetailsPopup(false);
+          clearBirthDetails();
+          setGoogleCredential(null);
+        } else if (errorData.userExists) {
+          setMessage(`❌ ${errorData.message}`);
+          setShowBirthDetailsPopup(false);
+          clearBirthDetails();
+          setGoogleCredential(null);
+          setTimeout(() => {
+            setIsSignup(false);
+            setMessage('Account exists. Switched to login mode.');
+          }, 3000);
+        } else {
+          setMessage(`❌ ${errorData.message || 'Signup failed'}`);
+        }
+      } else {
+        setMessage('❌ Network error. Please check your connection.');
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // ================================
+  // MODAL CONTROL FUNCTIONS
+  // ================================
+  const closeBirthDetailsPopup = () => {
+    setShowBirthDetailsPopup(false);
+    clearBirthDetails();
+    setGoogleCredential(null);
+    setGoogleUserInfo(null);
+    setMessage('');
+  };
+
+  const closeWaitingListModal = () => {
+    setShowWaitingListModal(false);
+    setGoogleCredential(null);
+    setGoogleUserInfo(null);
+  };
+
+  const handleModeChange = (newMode) => {
+    setIsSignup(newMode);
+    setMessage('');
+    if (showBirthDetailsPopup) closeBirthDetailsPopup();
+    if (showWaitingListModal) closeWaitingListModal();
+  };
+
+  const copyContactNumber = () => {
+    navigator.clipboard.writeText(contactNumber);
+    alert('📞 Contact number copied to clipboard!');
+  };
+
+  // ================================
+  // USEEFFECT HOOKS
+  // ================================
+
+  // Body class management for modals
+  useEffect(() => {
+    if (showDatePicker || showTimePicker) {
+      document.body.classList.add('modal-open');
+    } else {
+      document.body.classList.remove('modal-open');
+    }
+    return () => document.body.classList.remove('modal-open');
+  }, [showDatePicker, showTimePicker]);
+
+  // Google Auth initialization
+  useEffect(() => {
+    const initializeGoogleAuth = async () => {
+      if (isNative) {
+        try {
+          await GoogleAuth.initialize({
+            clientId: WEB_CLIENT_ID,
+            scopes: ['profile', 'email'],
+            grantOfflineAccess: true,
+          });
+        } catch (error) {
+          console.error('❌ GoogleAuth initialization error:', error);
+          setMessage('⚠️ Google Auth initialization failed. Please check your setup.');
+        }
+      }
+    };
+    initializeGoogleAuth();
+  }, [isNative, WEB_CLIENT_ID]);
+
+  // Click outside handlers
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      const countryDropdown = document.querySelector('.country-dropdown-container');
+      const placeDropdown = document.querySelector('.place-dropdown-container');
+       const religionDropdown = document.querySelector('.religion-dropdown-container'); // ✅ NEW
+
+      if (countryDropdown && !countryDropdown.contains(event.target)) {
+        setShowCountryDropdown(false);
+      }
+      if (placeDropdown && !placeDropdown.contains(event.target)) {
+        setShowSuggestions(false);
+      }
+       if (religionDropdown && !religionDropdown.contains(event.target)) { // ✅ NEW
+        setShowReligionDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // ================================
+  // RENDER COMPONENT
+  // ================================
+  return (
+    <div className="auth-container">
+      {/* Background Elements */}
+      <div className="bg-element-auth sparkle">✨</div>
+      <div className="bg-element-auth moon">🌙</div>
+      <div className="bg-element-auth crystal">🔮</div>
+      <div className="bg-element-auth star">⭐</div>
+
+      {/* Main Auth Container */}
+      <div className="auth-main-container">
+        {/* Header Section */}
+        <div className="auth-header">
+          <div className="auth-logo">⭐</div>
+          <h1 className="auth-title">ASTROGURU</h1>
+          <p className="auth-subtitle">✨ Your Gateway to Cosmic Wisdom ✨</p>
+        </div>
+
+        {/* Toggle Section */}
+        <div className="auth-toggle">
+          <button
+            onClick={() => handleModeChange(true)}
+            className={`toggle-btn ${isSignup ? 'active' : ''}`}
+          >
+            📝 Sign Up
+          </button>
+          <button
+            onClick={() => handleModeChange(false)}
+            className={`toggle-btn ${!isSignup ? 'active' : ''}`}
+          >
+            🔑 Login
+          </button>
+        </div>
+
+        {/* Message Section */}
+        {message && (
+          <div className={`status-message ${message.includes('❌') ? 'error' :
+            message.includes('⚠️') ? 'warning' : 'success'
+            }`}>
+            {message}
+          </div>
+        )}
+
+        {/* Google Auth Section */}
+        <div className="google-auth-container">
+          <p className="auth-instruction">
+            {isLoading ?
+              '🌟 Connecting to the cosmos...' :
+              isSignup ? '🚀 Sign up with Google' : '🔑 Sign in with Google'
+            }
+          </p>
+
+          <div className="google-login-wrapper">
+            {isNative ? (
+              <button
+                className="google-native-btn"
+                onClick={handleNativeGoogleAuth}
+                disabled={isLoading}
+              >
+                <span style={{ marginRight: 8, fontSize: 20 }}>🌐</span>
+                {isSignup ? 'Sign up with Google' : 'Sign in with Google'}
+              </button>
+            ) : (
+              <GoogleLogin
+                onSuccess={handleGoogleAuth}
+                onError={(error) => {
+                  console.error('❌ Web Google Auth Failed:', error);
+                  if (error === 'popup_closed_by_user') {
+                    setMessage('⚠️ Sign-in popup was closed. Please try again.');
+                  } else {
+                    setMessage('❌ Google authentication failed. Please try again.');
+                  }
+                }}
+                theme="filled_blue"
+                size="large"
+                text={isSignup ? "signup_with" : "signin_with"}
+                shape="rectangular"
+                width="300"
+                disabled={isLoading}
+              />
+            )}
+          </div>
+        </div>
+
+        {/* Features Preview */}
+        <div className="features-preview">
+          <div className="feature-preview kundli">
+            <div className="preview-icon">🔮</div>
+            <div className="preview-text">Free Kundli</div>
+          </div>
+          <div className="feature-preview pooja">
+            <div className="preview-icon">📖</div>
+            <div className="preview-text">Book Pooja</div>
+          </div>
+          <div className="feature-preview moon">
+            <div className="preview-icon">🌙</div>
+            <div className="preview-text">Moon Track</div>
+          </div>
+        </div>
+
+        {/* Info Text */}
+        <p className="auth-info-text">
+          {isSignup ? (
+            <>
+              Secure signup with Google • Birth details for accurate readings<br />
+              🌟 Account activation required • Contact support for access 🌟
+            </>
+          ) : (
+            <>
+              Secure login with Google • Continue your journey<br />
+              🌟 Only activated accounts can login 🌟
+            </>
+          )}
+        </p>
+      </div>
+
+      {/* ================================ */}
+      {/* BIRTH DETAILS MODAL */}
+      {/* ================================ */}
+      {showBirthDetailsPopup && (
+        <div className="modal-overlay">
+          <div className="birth-details-modal">
+            <button className="modal-close-btn" onClick={closeBirthDetailsPopup}>×</button>
+
+            <div className="modal-header">
+              <div className="modal-icon">🎉</div>
+              <h2 className="modal-title">
+                Welcome, {googleUserInfo?.name}!
+              </h2>
+              <p className="modal-subtitle">
+                You are not registered in AstroGuru. Please register to complete your cosmic profile.
+                <br />
+                <strong>Complete Your Cosmic Profile</strong>
+                <br />
+                Please provide your birth details for accurate astrological readings and personalized Kundli.
+              </p>
+            </div>
+
+            <div className="birth-form">
+              <div className="form-grid">
+                {/* Full Name Field */}
+                <div className="form-row name-religion-row">
+                  {/* Full Name Field */}
+                  <div className="form-field form-field-name">
+                    <label className="form-label">Full Name *</label>
+                    <input
+                      type="text"
+                      value={birthDetails.full_name}
+                      onChange={(e) => handleBirthDetailsChange('full_name', e.target.value)}
+                      placeholder="Enter your complete name"
+                      className="form-input"
+                    />
+                  </div>
+
+                  {/* ✅ NEW: Religion Dropdown */}
+                  <div className="form-field form-field-religion">
+                    <label className="form-label">Religion *</label>
+                    <div className="religion-dropdown-container">
+                      <div
+                        className={`religion-dropdown-trigger ${showReligionDropdown ? 'active' : ''}`}
+                        onClick={toggleReligionDropdown}
+                      >
+                        <div className="religion-dropdown-content">
+                          <span className="religion-icon">
+                            {religions.find(r => r.value === birthDetails.religion)?.icon || '🕉️'}
+                          </span>
+                          <span className="religion-text">
+                            {religions.find(r => r.value === birthDetails.religion)?.label || 'Hindu'}
+                          </span>
+                          <span className={`religion-arrow ${showReligionDropdown ? 'up' : 'down'}`}>
+                            {showReligionDropdown ? '▲' : '▼'}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Religion Dropdown Menu */}
+                      {showReligionDropdown && (
+                        <div className="religion-dropdown-menu">
+                          {religions.map((religion) => (
+                            <div
+                              key={religion.value}
+                              className={`religion-dropdown-item ${birthDetails.religion === religion.value ? 'selected' : ''}`}
+                              onClick={() => handleReligionSelect(religion)}
+                            >
+                              <span className="religion-icon">{religion.icon}</span>
+                              <span className="religion-name">{religion.label}</span>
+                              {birthDetails.religion === religion.value && (
+                                <span className="religion-selected-icon">✓</span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                
+
+                {/* Date/Time/Location Fields */}
+                <div className="form-grid-optimized">
+                  {/* Row 1: Date and Time */}
+                  <div className="form-row">
+                    {/* Date Picker */}
+                    <div className="form-field form-field-half">
+                      <label className="form-label">Date of Birth *</label>
+                      <div className="mobile-date-picker">
+                        <button
+                          type="button"
+                          className="mobile-date-btn uniform-size"
+                          onClick={() => {
+                            console.log('📅 Date picker button clicked!');
+                            setShowDatePicker(true);
+                          }}
+                        >
+                          <span className="date-icon">📅</span>
+                          <span className="date-text">
+                            {birthDetails.birth_day && birthDetails.birth_month && birthDetails.birth_year
+                              ? `${birthDetails.birth_day.toString().padStart(2, '0')} ${months.find(m => m.value == birthDetails.birth_month)?.name.substring(0, 3)} ${birthDetails.birth_year}`
+                              : 'Select Date'
+                            }
+                          </span>
+                          <span className="date-arrow">▼</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Time Picker */}
+                    <div className="form-field form-field-half">
+                      <label className="form-label">Birth Time *</label>
+                      <div className="mobile-time-picker">
+                        <button
+                          type="button"
+                          className="mobile-time-btn uniform-size"
+                          onClick={() => {
+                            console.log('🕐 Time picker button clicked!');
+                            setClockMode('hour');
+                            setShowTimePicker(true);
+                          }}
+                        >
+                          <span className="time-icon">🕐</span>
+                          <span className="time-text">
+                            {birthDetails.birth_time
+                              ? formatTimeDisplay(birthDetails.birth_time)
+                              : 'Select Time'
+                            }
+                          </span>
+                          <span className="time-arrow">▼</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Row 2: Country and Place */}
+                  <div className="form-row country-place-row">
+                    {/* Country Selector */}
+                    <div className="form-field form-field-country-small">
+                      <label className="form-label">Country *</label>
+                      <div className="country-dropdown-container country-compact">
+                        <div
+                          className={`country-dropdown-trigger country-compact-size ${showCountryDropdown ? 'active' : ''}`}
+                          onClick={toggleCountryDropdown}
+                        >
+                          <div className="country-dropdown-content country-compact-content">
+                            <span className="country-flag">{selectedCountry.flag}</span>
+                            <span className="country-code">{selectedCountry.code.toUpperCase()}</span>
+                            <span className={`country-arrow ${showCountryDropdown ? 'up' : 'down'}`}>
+                              {showCountryDropdown ? '▲' : '▼'}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Country Dropdown Menu */}
+                        {showCountryDropdown && (
+                          <div className="country-dropdown-menu country-compact-menu">
+                            {countries.map((country) => (
+                              <div
+                                key={country.code}
+                                className={`country-dropdown-item ${selectedCountry.code === country.code ? 'selected' : ''}`}
+                                onClick={() => handleCountrySelect(country)}
+                              >
+                                <span className="country-flag">{country.flag}</span>
+                                <span className="country-name">{country.name}</span>
+                                <span className="country-code-small">({country.code.toUpperCase()})</span>
+                                {selectedCountry.code === country.code && (
+                                  <span className="country-selected-icon">✓</span>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Place Selector */}
+                    <div className="form-field form-field-place-wide">
+                      <label className="form-label">Birth Place *</label>
+                      <div className="place-dropdown-container place-wide">
+                        <div
+                          className={`place-dropdown-trigger place-wide-size ${showSuggestions ? 'active' : ''}`}
+                          onClick={() => {
+                            setShowSuggestions(!showSuggestions);
+                            const container = document.querySelector('.place-dropdown-container.place-wide');
+                            if (container) {
+                              if (!showSuggestions) {
+                                container.classList.add('active');
+                              } else {
+                                container.classList.remove('active');
+                              }
+                            }
+                          }}
+                        >
+                          <div className="place-dropdown-content">
+                            <span className="place-dropdown-icon">🏙️</span>
+                            <div className="place-dropdown-text">
+                              {birthDetails.birth_place || `Select city in ${selectedCountry.name}`}
+                            </div>
+                            <span className={`place-dropdown-arrow ${showSuggestions ? 'up' : 'down'}`}>
+                              {showSuggestions ? '▲' : '▼'}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Search Input */}
+                        {showSuggestions && (
+                          <div className="place-search-container">
+                            <input
+                              type="text"
+                              value={searchQuery}
+                              onChange={(e) => handleSearchQueryChange(e.target.value)}
+                              onKeyDown={handlePlaceInputKeyDown}
+                              placeholder={`Type city in ${selectedCountry.name}...`}
+                              className="place-search-input"
+                              autoComplete="off"
+                              autoFocus
+                            />
+                            {isLoadingPlaces && (
+                              <div className="place-loading-icon">
+                                <span style={{ animation: 'spin 1s linear infinite' }}>🔄</span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Dropdown Menu */}
+                        {showSuggestions && (
+                          <div className="place-dropdown-menu" role="listbox">
+                            {placeSuggestions.length > 0 ? (
+                              placeSuggestions.map((place, index) => (
+                                <div
+                                  key={place.place_id || index}
+                                  className="place-dropdown-item"
+                                  onClick={() => handlePlaceSelect(place)}
+                                  onKeyDown={(e) => handlePlaceKeyDown(e, place)}
+                                  tabIndex={0}
+                                  role="option"
+                                  aria-selected={index === 0}
+                                >
+                                  <div className="place-item-content">
+                                    <div className="place-item-icon">📍</div>
+                                    <div className="place-item-details">
+                                      <div className="place-item-main">
+                                        {place.main_text}
+                                        {place.importance > 0.5 && (
+                                          <span className="place-item-popular">⭐</span>
+                                        )}
+                                      </div>
+                                      <div className="place-item-secondary">
+                                        {place.secondary_text}
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))
+                            ) : searchQuery.length > 2 && !isLoadingPlaces ? (
+                              <div className="place-dropdown-no-results">
+                                <div className="no-results-icon">🔍</div>
+                                <div className="no-results-text">
+                                  No cities found for "{searchQuery}" in {selectedCountry.name}
+                                  <br />
+                                  <small>Try different spelling or nearby city</small>
+                                </div>
+                              </div>
+                            ) : searchQuery.length === 0 ? (
+                              <div className="place-dropdown-hint">
+                                <div className="hint-icon">💡</div>
+                                <div className="hint-text">
+                                  Start typing to search cities in {selectedCountry.name}...
+                                </div>
+                              </div>
+                            ) : null}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="form-info">
+              🔮 Your birth details are used to generate accurate astrological charts and personalized readings. All information is kept confidential and secure.
+            </div>
+
+            <div className="modal-buttons">
+              <button
+                className="btn-secondary"
+                onClick={closeBirthDetailsPopup}
+                disabled={isLoading}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn-primary"
+                onClick={handleRegistrationComplete}
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <>
+                    <span>⏳</span>
+                    <span>Registering...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>🚀</span>
+                    <span>Complete Registration</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ================================ */}
+      {/* DATE PICKER MODAL */}
+      {/* ================================ */}
+      {showDatePicker && (
+        <div className="picker-overlay" onClick={(e) => e.target === e.currentTarget && setShowDatePicker(false)}>
+          <div className="scroll-picker-modal">
+            <div className="scroll-picker-header">
+              <h3>Select Date of Birth</h3>
+            </div>
+
+            <div className="scroll-picker-content">
+              <div className="scroll-wheels">
+                {/* Day Wheel */}
+                <div className="scroll-wheel">
+                  <div className="wheel-label">Day</div>
+                  <div className="wheel-container">
+                    {days.slice(0, getDaysInMonth()).map(day => (
+                      <div
+                        key={day}
+                        className={`wheel-item ${birthDetails.birth_day == day ? 'selected' : ''}`}
+                        onClick={() => handleBirthDetailsChange('birth_day', day)}
+                      >
+                        {day.toString().padStart(2, '0')}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Month Wheel */}
+                <div className="scroll-wheel">
+                  <div className="wheel-label">Month</div>
+                  <div className="wheel-container">
+                    {months.map(month => (
+                      <div
+                        key={month.value}
+                        className={`wheel-item ${birthDetails.birth_month == month.value ? 'selected' : ''}`}
+                        onClick={() => handleBirthDetailsChange('birth_month', month.value)}
+                      >
+                        {month.name.substring(0, 3).toUpperCase()}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Year Wheel */}
+                <div className="scroll-wheel">
+                  <div className="wheel-label">Year</div>
+                  <div className="wheel-container">
+                    {years.map(year => (
+                      <div
+                        key={year}
+                        className={`wheel-item ${birthDetails.birth_year == year ? 'selected' : ''}`}
+                        onClick={() => handleBirthDetailsChange('birth_year', year)}
+                      >
+                        {year}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="picker-buttons">
+              <button
+                className="picker-btn picker-btn-cancel"
+                onClick={() => setShowDatePicker(false)}
+              >
+                CANCEL
+              </button>
+              <button
+                className="picker-btn picker-btn-ok"
+                onClick={() => setShowDatePicker(false)}
+                disabled={!birthDetails.birth_day || !birthDetails.birth_month || !birthDetails.birth_year}
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ================================ */}
+      {/* TIME PICKER MODAL */}
+      {/* ================================ */}
+      {showTimePicker && (
+        <div className="picker-overlay" onClick={(e) => e.target === e.currentTarget && setShowTimePicker(false)}>
+          <div className="clock-picker-modal">
+            <div className="clock-time-display">
+              {birthDetails.birth_time ? formatTimeDisplay(birthDetails.birth_time) : '12:00 PM'}
+            </div>
+
+            <div className="analog-clock">
+              {/* Mode Toggle */}
+              <div className="clock-mode-toggle">
+                <button
+                  className={`mode-btn ${clockMode === 'hour' ? 'active' : ''}`}
+                  onClick={() => setClockMode('hour')}
+                >
+                  Hour
+                </button>
+                <button
+                  className={`mode-btn ${clockMode === 'minute' ? 'active' : ''}`}
+                  onClick={() => setClockMode('minute')}
+                >
+                  Minute
+                </button>
+              </div>
+
+              <div className="clock-face">
+                {/* Hour Mode */}
+                {clockMode === 'hour' &&
+                  [12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map(hour => (
+                    <div
+                      key={hour}
+                      className={`hour-number hour-${hour} ${getSelectedHour() === hour ? 'selected' : ''}`}
+                      onClick={() => handleHourClick(hour)}
+                    >
+                      {hour}
+                    </div>
+                  ))
+                }
+
+                {/* Minute Mode */}
+                {clockMode === 'minute' &&
+                  [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55].map((minute, index) => (
+                    <div
+                      key={minute}
+                      className={`minute-number minute-${index} ${getSelectedMinute() === minute ? 'selected' : ''}`}
+                      onClick={() => handleMinuteClick(minute)}
+                    >
+                      {minute.toString().padStart(2, '0')}
+                    </div>
+                  ))
+                }
+
+                {/* Clock Hands */}
+                <div className="clock-center"></div>
+                <div
+                  className="clock-hand hour-hand"
+                  style={{
+                    transform: `rotate(${getHourAngle()}deg)`
+                  }}
+                ></div>
+                <div
+                  className="clock-hand minute-hand"
+                  style={{
+                    transform: `rotate(${getMinuteAngle()}deg)`
+                  }}
+                ></div>
+              </div>
+
+              {/* AM/PM Toggle */}
+              <div className="am-pm-toggle">
+                <button
+                  className={`am-pm-btn ${getTimePeriod() === 'AM' ? 'active' : ''}`}
+                  onClick={() => toggleAMPM('AM')}
+                >
+                  AM
+                </button>
+                <button
+                  className={`am-pm-btn ${getTimePeriod() === 'PM' ? 'active' : ''}`}
+                  onClick={() => toggleAMPM('PM')}
+                >
+                  PM
+                </button>
+              </div>
+            </div>
+
+            <div className="time-input-fallback">
+              <input
+                type="time"
+                value={birthDetails.birth_time}
+                onChange={(e) => handleBirthDetailsChange('birth_time', e.target.value)}
+                className="time-input-hidden"
+              />
+            </div>
+
+            <div className="picker-buttons">
+              <button
+                className="picker-btn picker-btn-cancel"
+                onClick={() => setShowTimePicker(false)}
+              >
+                CANCEL
+              </button>
+              <button
+                className="picker-btn picker-btn-ok"
+                onClick={() => setShowTimePicker(false)}
+                disabled={!birthDetails.birth_time}
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ================================ */}
+      {/* WAITING LIST MODAL */}
+      {/* ================================ */}
+      {showWaitingListModal && (
+        <div className="modal-overlay">
+          <div className="birth-details-modal">
+            <button
+              className="modal-close-btn"
+              onClick={closeWaitingListModal}
+            >
+              ✕
+            </button>
+
+            <div className="modal-header">
+              <div className="modal-icon">⏳</div>
+              <h2 className="modal-title">You're on the Waiting List!</h2>
+              <p className="modal-subtitle">
+                Welcome back, {googleUserInfo?.name}! Your account is currently in our waiting list.
+                We'll notify you as soon as your access is activated.
+              </p>
+            </div>
+
+            <div className="waiting-info">
+              <div className="waiting-status">
+                <div className="status-icon">📧</div>
+                <div className="status-text">
+                  <strong>Email:</strong> {googleUserInfo?.email}
+                </div>
+              </div>
+              <div className="waiting-status">
+                <div className="status-icon">📅</div>
+                <div className="status-text">
+                  <strong>Status:</strong> Pending Activation
+                </div>
+              </div>
+              <div className="waiting-message">
+                <p>🌟 Thank you for your interest in AstroGuru! We're working hard to provide the best cosmic experience.</p>
+                <p>💌 You'll receive an email notification once your account is activated.</p>
+                <p>📞 For faster activation, contact M.A. at {contactNumber}</p>
+              </div>
+              <div className="contact-section">
+                <button className="contact-btn" onClick={copyContactNumber}>
+                  📞 Copy Contact Number
+                </button>
+              </div>
+            </div>
+
+            <div className="modal-buttons">
+              <button
+                className="btn-secondary"
+                onClick={closeWaitingListModal}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Copyright */}
+      <div className="auth-copyright">
+        © 2025 AstroGuru • Secure Authentication • Activation Required
+      </div>
+    </div>
+  );
+};
+
+export default Auth;
