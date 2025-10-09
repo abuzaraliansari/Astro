@@ -1,7 +1,7 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, useLocation, Navigate, useNavigate } from 'react-router-dom';
 import { GoogleOAuthProvider } from '@react-oauth/google';
-import { AuthProvider } from './AuthContext';
+import { AuthProvider, useAuth } from './AuthContext';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import Auth from './components/Auth';
@@ -13,11 +13,26 @@ import Kundli from './components/Kundli_temp';
 import CallGuru from './components/CallGuru_temp';
 import Submuhrat from './components/Submuhrat_temp';
 import Home from './components/Home';
+import MoonTracker from './components/MoonTracker';
+import BookPooja from './components/BookPooja';
+import Refer from './components/refer';
 import './App.css';
 
+// Layout component adds Header and Footer conditionally and checks auth status to redirect unauthenticated users
 const Layout = ({ children }) => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+
   const isAuthPage = location.pathname === '/';
+   const isHomePage = location.pathname === '/home'; 
+
+  // Redirect unauthenticated user to login page "/" if not on login page
+  useEffect(() => {
+    if (!user && !isAuthPage) {
+      navigate('/', { replace: true });
+    }
+  }, [user, isAuthPage, navigate]);
 
   return (
     <div className="app-layout">
@@ -25,7 +40,7 @@ const Layout = ({ children }) => {
       <main className={`main-content ${!isAuthPage ? 'with-header-footer' : ''}`}>
         {children}
       </main>
-      {!isAuthPage && <Footer />}
+        {isHomePage && <Footer />}
     </div>
   );
 };
@@ -39,7 +54,7 @@ function App() {
             <Routes>
               {/* Auth Route - No Header/Footer */}
               <Route path="/" element={<Auth />} />
-              
+
               {/* Protected Routes - With Header/Footer */}
               <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
               <Route path="/chat" element={<ProtectedRoute><ChatBot /></ProtectedRoute>} />
@@ -48,11 +63,12 @@ function App() {
               <Route path="/horoscope" element={<ProtectedRoute><Horoscope /></ProtectedRoute>} />
               <Route path="/submuhrat" element={<ProtectedRoute><Submuhrat /></ProtectedRoute>} />
               <Route path="/call" element={<ProtectedRoute><CallGuru /></ProtectedRoute>} />
-              
+
               {/* Coming Soon Routes */}
-              <Route path="/pooja" element={<ProtectedRoute><div className="coming-soon-page">📖 Pooja booking coming soon…</div></ProtectedRoute>} />
-              <Route path="/moon" element={<ProtectedRoute><div className="coming-soon-page">🌙 Moon tracker coming soon…</div></ProtectedRoute>} />
-              
+              <Route path="/moon" element={<ProtectedRoute><MoonTracker /></ProtectedRoute>} />
+              <Route path="/pooja" element={<ProtectedRoute><BookPooja /></ProtectedRoute>} />
+              <Route path="/refer" element={<ProtectedRoute><Refer /></ProtectedRoute>} />
+
               {/* Catch All Route */}
               <Route path="*" element={<Navigate to="/home" replace />} />
             </Routes>

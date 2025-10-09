@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
+import { endSession } from '../api';
 import InsufficientCreditsModal from './InsufficientCreditsModal';
 
 function Header() {
@@ -10,6 +11,7 @@ function Header() {
   const [showNavMenu, setShowNavMenu] = useState(false);
   const [showInsufficientCreditsModal, setShowInsufficientCreditsModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [editMode, setEditMode] = useState({
     fullName: false,
     religion: false,
@@ -41,57 +43,75 @@ function Header() {
     }
   }, [user]);
 
+  // Enhanced logout protection - redirect if user is not authenticated
+  useEffect(() => {
+    if (!user && location.pathname !== '/') {
+      window.location.href = '/';
+    }
+  }, [user, location.pathname]);
+
+  // Listen for logout events from other tabs/windows
+  useEffect(() => {
+    const handleStorageChange = (e) => {
+      if (e.key === 'astroguru_user' && !e.newValue) {
+        window.location.reload();
+      }
+    };
+    const handleUserLoggedOut = () => {
+      setShowUserMenu(false);
+      setShowProfileModal(false);
+      window.location.href = '/';
+    };
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('userLoggedOut', handleUserLoggedOut);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('userLoggedOut', handleUserLoggedOut);
+    };
+  }, []);
+
   // Get current page name
   const getCurrentPageName = () => {
     const pathMap = {
       '/home': 'Home',
       '/chat': 'Chat',
       '/credits': 'Credits',
-      '/kundli': 'Kundli',
-      '/horoscope': 'Horoscope',
-      '/submuhrat': 'Submuhrat',
+      // '/kundli': 'Kundli',
+      //'/horoscope': 'Horoscope',
+      //'/submuhrat': 'Submuhrat',
       '/call': 'Call Guru',
-      '/pooja': 'Pooja',
-      '/moon': 'Moon Tracker'
+      //'/pooja': 'Pooja',
+      //'/moon': 'Moon Tracker'
     };
     return pathMap[location.pathname] || 'AstroGuru';
   };
 
-  // Navigation menu items with icons
+  // Navigation menu items WITHOUT credits
   const navItems = [
-    { path: '/home', label: 'Home'},
-    { path: '/chat', label: 'Chat'},
-    { path: '/kundli', label: 'Kundli'},
-    { path: '/horoscope', label: 'Horoscope'},
-    { path: '/submuhrat', label: 'Submuhrat'},
-    { path: '/call', label: 'Call Guru'},
-    { 
-      path: '/credits', 
-      label: 'Credits',
-      showCredits: true 
-    }
+    { path: '/home', label: 'Home' },
+    { path: '/chat', label: 'Chat' },
+    // { path: '/kundli', label: 'Kundli' },
+    //{ path: '/horoscope', label: 'Horoscope' },
+    //{ path: '/submuhrat', label: 'Submuhrat' },
+    //{ path: '/moon', label: 'Moon Tracker' },
+    //{ path: '/pooja', label: 'Pooja' },
+    { path: '/call', label: 'Schedule' },
+    { path: '/refer', label: 'Refer' }
   ];
 
   // Religion options
   const religionOptions = [
-    'Hindu', 'Islam', 'Christianity', 'Sikhism', 'Buddhism', 
+    'Hindu', 'Islam', 'Christianity', 'Sikhism', 'Buddhism',
     'Jainism', 'Judaism', 'Zoroastrianism', 'Bahai', 'Other'
   ];
 
   // Close menus when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (!event.target.closest('.user-menu-container')) {
-        setShowUserMenu(false);
-      }
-      if (!event.target.closest('.nav-dropdown-mobile')) {
-        setShowNavMenu(false);
-      }
-      if (!event.target.closest('.profile-modal') && !event.target.closest('.profile-modal-trigger')) {
-        setShowProfileModal(false);
-      }
+      if (!event.target.closest('.user-menu-container')) setShowUserMenu(false);
+      if (!event.target.closest('.nav-dropdown-mobile')) setShowNavMenu(false);
+      if (!event.target.closest('.profile-modal') && !event.target.closest('.profile-modal-trigger')) setShowProfileModal(false);
     };
-
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
@@ -100,25 +120,140 @@ function Header() {
     if (location.pathname === '/chat') {
       window.dispatchEvent(new CustomEvent('clearChat'));
     } else {
-      // Navigate to chat if not already there
       window.location.href = '/chat';
     }
   };
 
-  const handleLogout = () => {
-    logout();
+  // Enhanced logout with confirmation and loading state
+  const handleLogout = async () => {
+    if (!window.confirm('Are you sure you want to logout? This will clear all your session data.')) {
+      return;
+    }
+
+    console.log('═══════════════════════════════════════════════');
+    console.log('🚪 LOGOUT PROCESS STARTED');
+    console.log('═══════════════════════════════════════════════');
+
+    setIsLoggingOut(true);
     setShowUserMenu(false);
+    setShowProfileModal(false);
+
+    try {
+      document.body.style.cursor = 'wait';
+
+      // ✅ STEP 1: End Session on Backend (NEW CODE STARTS HERE)
+      try {
+        console.log('🔐 Step 1: Ending session on backend...');
+        const userId = user?.userId || user?.id;
+        const sessionId = localStorage.getItem('astroguru_session_id');
+
+        console.log('📊 Session info:', {
+          userId: userId,
+          sessionId: sessionId,  // ✅ Will show the full GUID
+          userName: user?.full_name
+        });
+
+        if (userId) {
+          const sessionResponse = await endSession(
+            sessionId || null,  // ✅ KEEP AS STRING (GUID)
+            userId
+          );
+
+
+          if (sessionResponse.data.success) {
+            console.log('✅ Session ended successfully on backend');
+            console.log('📊 Sessions closed:', sessionResponse.data.sessionsEnded || 1);
+          } else {
+            console.warn('⚠️ Session end returned false, continuing logout...');
+          }
+        } else {
+          console.warn('⚠️ No userId found, skipping session end');
+        }
+      } catch (sessionError) {
+        console.error('❌ Session end error:', sessionError);
+        console.error('❌ Error details:', sessionError.response?.data || sessionError.message);
+        // Don't block logout if session end fails
+        console.warn('⚠️ Continuing logout despite session error');
+      }
+      // (NEW CODE ENDS HERE)
+
+      // ✅ STEP 2: Clear LocalStorage (YOUR EXISTING CODE CONTINUES)
+      console.log('🗑️ Step 2: Clearing localStorage...');
+      const keysToRemove = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (
+          key.startsWith('astroguru_') ||
+          key.startsWith('chat_') ||
+          key.startsWith('user_') ||
+          key.includes('astro') ||
+          key.includes('guru')
+        )) {
+          keysToRemove.push(key);
+        }
+      }
+      keysToRemove.forEach(key => localStorage.removeItem(key));
+      console.log('✅ LocalStorage cleared');
+
+      // ✅ STEP 3: Clear SessionStorage (YOUR EXISTING CODE)
+      console.log('🗑️ Step 3: Clearing sessionStorage...');
+      const sessionKeysToRemove = [];
+      for (let i = 0; i < sessionStorage.length; i++) {
+        const key = sessionStorage.key(i);
+        if (key && (
+          key.startsWith('astroguru_') ||
+          key.startsWith('chat_') ||
+          key.startsWith('user_') ||
+          key.includes('astro') ||
+          key.includes('guru')
+        )) {
+          sessionKeysToRemove.push(key);
+        }
+      }
+      sessionKeysToRemove.forEach(key => sessionStorage.removeItem(key));
+      console.log('✅ SessionStorage cleared');
+
+      // ✅ STEP 4: Dispatch Events (YOUR EXISTING CODE)
+      console.log('📡 Step 4: Dispatching logout events...');
+      window.dispatchEvent(new CustomEvent('userLoggedOut'));
+      window.dispatchEvent(new CustomEvent('clearAllData'));
+      window.dispatchEvent(new CustomEvent('clearChat'));
+      console.log('✅ Events dispatched');
+
+      // ✅ STEP 5: Auth Logout (YOUR EXISTING CODE)
+      console.log('🔐 Step 5: Calling auth context logout...');
+      logout();
+      console.log('✅ Auth context logout complete');
+
+      console.log('═══════════════════════════════════════════════');
+      console.log('✅ LOGOUT PROCESS COMPLETE');
+      console.log('═══════════════════════════════════════════════');
+
+      // ✅ STEP 6: Redirect (YOUR EXISTING CODE)
+      setTimeout(() => {
+        console.log('🏠 Redirecting to home page...');
+        window.location.href = '/';
+        window.location.reload();
+      }, 100);
+
+    } catch (error) {
+      console.error('❌ Logout process error:', error);
+      console.log('═══════════════════════════════════════════════');
+      window.location.href = '/';
+      window.location.reload();
+    } finally {
+      document.body.style.cursor = 'default';
+      setIsLoggingOut(false);
+    }
   };
 
-  // Close mobile menu when navigating
-  const handleMobileMenuClick = () => {
-    setShowNavMenu(false);
-  };
 
-  // Handle profile modal
+  const handleMobileMenuClick = () => setShowNavMenu(false);
+
   const handleProfileClick = () => {
-    setShowProfileModal(true);
-    setShowUserMenu(false);
+    console.log('Profile clicked');
+    //setShowProfileModal(true);
+    //setShowUserMenu(false);
   };
 
   const handleEditToggle = (field) => {
@@ -137,35 +272,25 @@ function Header() {
 
   const handleSaveField = async (field) => {
     try {
-      // Map frontend field names to backend field names
       const fieldMapping = {
         fullName: 'full_name',
         dateOfBirth: 'birth_date',
         birthTime: 'birth_time',
         birthPlace: 'birth_place'
       };
-
       const backendField = fieldMapping[field] || field;
       const updateData = { [backendField]: profileData[field] };
-
-      // Call updateUserProfile from AuthContext
       await updateUserProfile(updateData);
-      
-      // Toggle edit mode off
       setEditMode(prev => ({
         ...prev,
         [field]: false
       }));
-
-      console.log(`✅ Profile field ${field} updated successfully`);
     } catch (error) {
-      console.error(`❌ Error updating profile field ${field}:`, error);
       alert('Failed to update profile. Please try again.');
     }
   };
 
   const handleCancelEdit = (field) => {
-    // Reset to original value
     const originalValue = {
       fullName: user.full_name || '',
       religion: user.religion || '',
@@ -174,20 +299,35 @@ function Header() {
       country: user.country || '',
       birthPlace: user.birth_place || ''
     };
-
     setProfileData(prev => ({
       ...prev,
       [field]: originalValue[field]
     }));
-
     setEditMode(prev => ({
       ...prev,
       [field]: false
     }));
   };
 
+  if (!user) return null;
+
   return (
     <>
+      {isLoggingOut && (
+        <div>
+          <div style={{
+            background: 'white',
+            padding: '2rem',
+            borderRadius: '12px',
+            textAlign: 'center',
+            boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3)'
+          }}>
+            <div></div>
+            <p>Logging out securely...</p>
+          </div>
+        </div>
+      )}
+
       {showInsufficientCreditsModal && (
         <InsufficientCreditsModal
           onClose={() => setShowInsufficientCreditsModal(false)}
@@ -204,14 +344,13 @@ function Header() {
           <div className="profile-modal">
             <div className="profile-modal-header">
               <h2>👤 Profile Information</h2>
-              <button 
+              <button
                 className="profile-modal-close"
                 onClick={() => setShowProfileModal(false)}
               >
                 ✕
               </button>
             </div>
-
             <div className="profile-modal-content">
               {/* Full Name */}
               <div className="profile-field">
@@ -236,13 +375,13 @@ function Header() {
                   <div className="profile-actions">
                     {editMode.fullName ? (
                       <>
-                        <button 
+                        <button
                           className="profile-btn save"
                           onClick={() => handleSaveField('fullName')}
                         >
                           ✓
                         </button>
-                        <button 
+                        <button
                           className="profile-btn cancel"
                           onClick={() => handleCancelEdit('fullName')}
                         >
@@ -250,7 +389,7 @@ function Header() {
                         </button>
                       </>
                     ) : (
-                      <button 
+                      <button
                         className="profile-btn edit"
                         onClick={() => handleEditToggle('fullName')}
                       >
@@ -260,7 +399,6 @@ function Header() {
                   </div>
                 </div>
               </div>
-
               {/* Religion */}
               <div className="profile-field">
                 <label className="profile-label">
@@ -289,13 +427,13 @@ function Header() {
                   <div className="profile-actions">
                     {editMode.religion ? (
                       <>
-                        <button 
+                        <button
                           className="profile-btn save"
                           onClick={() => handleSaveField('religion')}
                         >
                           ✓
                         </button>
-                        <button 
+                        <button
                           className="profile-btn cancel"
                           onClick={() => handleCancelEdit('religion')}
                         >
@@ -303,7 +441,7 @@ function Header() {
                         </button>
                       </>
                     ) : (
-                      <button 
+                      <button
                         className="profile-btn edit"
                         onClick={() => handleEditToggle('religion')}
                       >
@@ -313,7 +451,6 @@ function Header() {
                   </div>
                 </div>
               </div>
-
               {/* Date of Birth */}
               <div className="profile-field">
                 <label className="profile-label">
@@ -330,21 +467,21 @@ function Header() {
                     />
                   ) : (
                     <span className="profile-value">
-                      {profileData.dateOfBirth ? 
-                        new Date(profileData.dateOfBirth).toLocaleDateString() : 
+                      {profileData.dateOfBirth ?
+                        new Date(profileData.dateOfBirth).toLocaleDateString() :
                         'Not set'}
                     </span>
                   )}
                   <div className="profile-actions">
                     {editMode.dateOfBirth ? (
                       <>
-                        <button 
+                        <button
                           className="profile-btn save"
                           onClick={() => handleSaveField('dateOfBirth')}
                         >
                           ✓
                         </button>
-                        <button 
+                        <button
                           className="profile-btn cancel"
                           onClick={() => handleCancelEdit('dateOfBirth')}
                         >
@@ -352,7 +489,7 @@ function Header() {
                         </button>
                       </>
                     ) : (
-                      <button 
+                      <button
                         className="profile-btn edit"
                         onClick={() => handleEditToggle('dateOfBirth')}
                       >
@@ -362,7 +499,6 @@ function Header() {
                   </div>
                 </div>
               </div>
-
               {/* Birth Time */}
               <div className="profile-field">
                 <label className="profile-label">
@@ -385,13 +521,13 @@ function Header() {
                   <div className="profile-actions">
                     {editMode.birthTime ? (
                       <>
-                        <button 
+                        <button
                           className="profile-btn save"
                           onClick={() => handleSaveField('birthTime')}
                         >
                           ✓
                         </button>
-                        <button 
+                        <button
                           className="profile-btn cancel"
                           onClick={() => handleCancelEdit('birthTime')}
                         >
@@ -399,7 +535,7 @@ function Header() {
                         </button>
                       </>
                     ) : (
-                      <button 
+                      <button
                         className="profile-btn edit"
                         onClick={() => handleEditToggle('birthTime')}
                       >
@@ -409,7 +545,6 @@ function Header() {
                   </div>
                 </div>
               </div>
-
               {/* Country */}
               <div className="profile-field">
                 <label className="profile-label">
@@ -433,13 +568,13 @@ function Header() {
                   <div className="profile-actions">
                     {editMode.country ? (
                       <>
-                        <button 
+                        <button
                           className="profile-btn save"
                           onClick={() => handleSaveField('country')}
                         >
                           ✓
                         </button>
-                        <button 
+                        <button
                           className="profile-btn cancel"
                           onClick={() => handleCancelEdit('country')}
                         >
@@ -447,7 +582,7 @@ function Header() {
                         </button>
                       </>
                     ) : (
-                      <button 
+                      <button
                         className="profile-btn edit"
                         onClick={() => handleEditToggle('country')}
                       >
@@ -457,7 +592,6 @@ function Header() {
                   </div>
                 </div>
               </div>
-
               {/* Birth Place */}
               <div className="profile-field">
                 <label className="profile-label">
@@ -481,13 +615,13 @@ function Header() {
                   <div className="profile-actions">
                     {editMode.birthPlace ? (
                       <>
-                        <button 
+                        <button
                           className="profile-btn save"
                           onClick={() => handleSaveField('birthPlace')}
                         >
                           ✓
                         </button>
-                        <button 
+                        <button
                           className="profile-btn cancel"
                           onClick={() => handleCancelEdit('birthPlace')}
                         >
@@ -495,7 +629,7 @@ function Header() {
                         </button>
                       </>
                     ) : (
-                      <button 
+                      <button
                         className="profile-btn edit"
                         onClick={() => handleEditToggle('birthPlace')}
                       >
@@ -512,78 +646,73 @@ function Header() {
 
       <header className="app-header">
         <div className="header-left">
-          {/* Logo */}
           <Link to="/home" className="logo-section">
             <span className="logo-icon">🌟</span>
             <h1 className="logo-text">AstroGuru</h1>
           </Link>
         </div>
-
-        {/* ✅ CENTERED NAVIGATION CONTAINER */}
+        {/* Centered Navigation Container */}
         <div className="nav-container-center">
-          {/* ✅ DESKTOP: Horizontal Navigation Grid */}
+          {/* Desktop: Horizontal Navigation Grid */}
           <div className="nav-grid-desktop">
             {navItems.map((item) => (
               <Link
                 key={item.path}
                 to={item.path}
-                className={`nav-grid-item ${location.pathname === item.path ? 'active' : ''} ${item.showCredits ? 'credits-item' : ''}`}
+                className={`nav-grid-item ${location.pathname === item.path ? 'active' : ''}`}
               >
-                <span className="nav-icon">{item.icon}</span>
-                <span className="nav-label">
-                  {item.showCredits ? `💎 ${user?.credits || 0}` : item.label}
-                </span>
+                <span className="nav-label">{item.label}</span>
               </Link>
             ))}
           </div>
-
-          {/* ✅ MOBILE: Dropdown Navigation */}
+          {/* Mobile: Dropdown Navigation */}
           <div className="nav-dropdown-mobile">
-            <button 
+            <button
               className="nav-toggle"
               onClick={() => setShowNavMenu(!showNavMenu)}
             >
-              <span className="current-page">{getCurrentPageName()}</span>
+              <span className="current-page">☰ Menu</span>
               <span className={`dropdown-arrow ${showNavMenu ? 'open' : ''}`}>▼</span>
             </button>
-            
             {showNavMenu && (
               <div className="nav-menu">
                 {navItems.map((item) => (
                   <Link
                     key={item.path}
                     to={item.path}
-                    className={`nav-item ${location.pathname === item.path ? 'active' : ''} ${item.showCredits ? 'credits-item' : ''}`}
+                    className={`nav-item ${location.pathname === item.path ? 'active' : ''}`}
                     onClick={handleMobileMenuClick}
                   >
-                    <span className="nav-icon">{item.icon}</span>
-                    <span className="nav-label">
-                      {item.showCredits ? `Credits: ${user?.credits || 0}` : item.label}
-                    </span>
+                    <span className="nav-label">{item.label}</span>
                   </Link>
                 ))}
               </div>
             )}
           </div>
         </div>
-
-        {/* Header Right */}
+        {/* Header Right: Credits + User Menu */}
         <div className="header-right">
+          {/* Credits Display */}
+          <Link to="/credits" className="credits-display">
+            <span className='dimond'>💎</span>
+            <span className={`credits-count ${user?.credits < 10 ? 'low-credits' : ''}`}>
+              {user?.credits || 0}
+            </span>
+            {user?.credits < 10 && <span className="warning-icon">⚠️</span>}
+          </Link>
           {/* User Menu */}
           <div className="user-menu-container">
-            <div 
+            <div
               className="user-info"
               onClick={() => setShowUserMenu(!showUserMenu)}
             >
               <div className="user-avatar">
                 {user?.profile_picture ? (
-                  <img 
-                    src={user.profile_picture} 
+                  <img
+                    src={user.profile_picture}
                     alt="Profile"
                     className="avatar-img"
-                    onError={(e) => {
-                      e.target.style.display = 'none';
-                    }}
+                    onError={(e) => { e.target.style.display = 'none'; }}
                   />
                 ) : (
                   <span className="avatar-initials">
@@ -595,19 +724,16 @@ function Header() {
                 {user?.full_name?.split(' ')[0] || 'User'}
               </span>
             </div>
-
             {showUserMenu && (
               <div className="user-dropdown-menu">
                 <div className="dropdown-header">
                   <div className="dropdown-avatar">
                     {user?.profile_picture ? (
-                      <img 
-                        src={user.profile_picture} 
+                      <img
+                        src={user.profile_picture}
                         alt="Profile"
                         className="dropdown-avatar-img"
-                        onError={(e) => {
-                          e.target.style.display = 'none';
-                        }}
+                        onError={(e) => { e.target.style.display = 'none'; }}
                       />
                     ) : (
                       <span className="dropdown-avatar-placeholder">
@@ -624,32 +750,23 @@ function Header() {
                     </div>
                   </div>
                 </div>
-
-                <button 
+                <button
                   className="dropdown-item profile-modal-trigger"
                   onClick={handleProfileClick}
                 >
                   <span className="dropdown-icon">👤</span>
                   Profile
                 </button>
-
-                <Link 
-                  to="/settings"
-                  className="dropdown-item"
-                  onClick={() => setShowUserMenu(false)}
-                >
-                  <span className="dropdown-icon">⚙️</span>
-                  Settings
-                </Link>
-
                 <div className="dropdown-divider"></div>
-
-                <button 
+                <button
                   className="dropdown-item logout-item"
                   onClick={handleLogout}
+                  disabled={isLoggingOut}
                 >
-                  <span className="dropdown-icon">🚪</span>
-                  Logout
+                  <span className="dropdown-icon">
+                    {isLoggingOut ? '⏳' : '🚪'}
+                  </span>
+                  {isLoggingOut ? 'Logging out...' : 'Logout'}
                 </button>
               </div>
             )}

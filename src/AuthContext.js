@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { getUserCredits, deductCredits as apiDeductCredits, addCredits as apiAddCredits } from './api';
+import { getUserCredits, deductCredits as apiDeductCredits, addCredits as apiAddCredits, getUserPreferences } from './api';
 
 const AuthContext = createContext();
 
@@ -22,44 +22,44 @@ export const AuthProvider = ({ children }) => {
       if (storedUser) {
         try {
           const userData = JSON.parse(storedUser);
-          
-          // ✅ UPDATED: Ensure all profile data exists with complete birth details AND religion
-          const completeUserData = {
-            ...userData,
-            credits: userData.credits || 20,
-            full_name: userData.full_name || userData.name || '',
-            email: userData.email || '',
-            religion: userData.religion || 'Hindu', // ✅ NEW: Default religion
-            timezone: userData.timezone || 'Asia/Kolkata',
-            birth_time: userData.birth_time || '',
-            birth_date: userData.birth_date || '',
-            birth_place: userData.birth_place || ''
-          };
-          
-          setUser(completeUserData);
-          console.log('💾 Loaded user data from localStorage with religion:', completeUserData.religion);
-          
-          // ✅ Sync credits from database after loading from localStorage
-          if (completeUserData.id) {
+          console.log('🔄 Loaded stored user:', userData);
+
+          // ✅ Use userData.userId (database ID), NOT userData.id (google_id)
+          if (userData.userId) {
             try {
-              console.log('🔄 Syncing credits from database...');
-              const response = await getUserCredits(completeUserData.id);
-              if (response.data.success) {
-                const syncedUserData = {
-                  ...completeUserData,
-                  credits: response.data.credits
-                };
-                setUser(syncedUserData);
-                localStorage.setItem('astroguru_user', JSON.stringify(syncedUserData));
-                console.log('✅ Credits synced from database:', response.data.credits);
+              // ✅ Load preferences using DATABASE userId
+              try {
+                const prefResponse = await getUserPreferences(userData.userId);
+                if (prefResponse?.data) {
+                  const { preferred_language, country_code } = prefResponse.data;
+                  userData.preferred_language = preferred_language || 'ENGLISH';
+                  userData.country_code = country_code || userData.country_code || 'IN';
+                  console.log('✅ Loaded user preferences from backend:', prefResponse.data);
+                }
+              } catch (prefError) {
+                console.warn('⚠️ Could not load preferences (404 - endpoint may not exist):', prefError.message);
+                // Continue with defaults
               }
-            } catch (error) {
-              console.error('❌ Failed to sync credits from database:', error);
-              // Continue with localStorage data if sync fails
+
+              // ✅ Load credits from credit_balance_summary
+              const creditsResponse = await getUserCredits(userData.userId);
+              if (creditsResponse?.data?.success) {
+                userData.credits = creditsResponse.data.balance.currentCredits;
+                userData.credits_limit = creditsResponse.data.balance.creditsLimit;
+                console.log('✅ Synced credits from database:', {
+                  current: userData.credits,
+                  limit: userData.credits_limit
+                });
+              }
+            } catch (e) {
+              console.error('Failed to sync user data from backend:', e);
             }
           }
+
+          setUser(userData);
+          localStorage.setItem('astroguru_user', JSON.stringify(userData));
         } catch (error) {
-          console.error('❌ Error parsing stored user:', error);
+          console.error('Error parsing stored user:', error);
           localStorage.removeItem('astroguru_user');
         }
       }
@@ -71,46 +71,62 @@ export const AuthProvider = ({ children }) => {
 
   // ✅ Enhanced login function with database sync and religion support
   const login = async (userData) => {
-    // ✅ UPDATED: Store complete user data including birth details AND religion from API response
+    console.log('🔐 Login initiated for user:', userData.email);
+
+    // Use values from login response directly
+    let preferredLanguage = userData.preferred_language || 'ENGLISH';
+    let currentCredits = userData.credits || 20;
+    let creditsLimit = userData.credits_limit || 0;
+
+    // ✅ Use userData.userId (database ID), NOT userData.id (google_id)
+    if (userData.userId) {
+      try {
+        console.log('📊 Fetching user data for userId:', userData.userId);
+
+        // ✅ Load preferences using DATABASE userId
+        try {
+          const prefResponse = await getUserPreferences(userData.userId);
+          if (prefResponse?.data?.preferred_language) {
+            preferredLanguage = prefResponse.data.preferred_language;
+            console.log('✅ Loaded preference:', preferredLanguage);
+          }
+        } catch (prefError) {
+          console.warn('⚠️ Could not load preferences (404 - endpoint may not exist):', prefError.message);
+          // Continue with default language
+        }
+
+        // ✅ Load credits from credit_balance_summary using DATABASE userId
+        const creditsResponse = await getUserCredits(userData.userId);
+        if (creditsResponse?.data?.success) {
+          currentCredits = creditsResponse.data.balance.currentCredits;
+          creditsLimit = creditsResponse.data.balance.creditsLimit;
+          console.log('✅ Loaded credits from database:', {
+            current: currentCredits,
+            limit: creditsLimit
+          });
+        }
+      } catch (err) {
+        console.warn('Could not fetch user data from database, using login data:', err.message);
+      }
+    } else {
+      console.warn('⚠️ No userId found in userData - skipping database sync');
+    }
+
     const completeUserData = {
       ...userData,
-      credits: userData.credits || 20,
-      full_name: userData.full_name || userData.name || '',
-      email: userData.email || '',
-      religion: userData.religion || 'Hindu', // ✅ NEW: Include religion from signup
-      timezone: userData.timezone || 'Asia/Kolkata',
-      birth_time: userData.birth_time || '',
-      birth_date: userData.birth_date || '',
-      birth_place: userData.birth_place || ''
+      preferred_language: preferredLanguage,
+      credits: currentCredits,
+      credits_limit: creditsLimit
     };
-    
-    console.log('💾 Storing complete user data with religion:', completeUserData.religion);
+
     setUser(completeUserData);
     localStorage.setItem('astroguru_user', JSON.stringify(completeUserData));
-
-    // ✅ Sync credits from database after login
-    if (completeUserData.id) {
-      try {
-        console.log('🔄 Syncing credits from database after login...');
-        const response = await getUserCredits(completeUserData.id);
-        if (response.data.success) {
-          const syncedUserData = {
-            ...completeUserData,
-            credits: response.data.credits
-          };
-          setUser(syncedUserData);
-          localStorage.setItem('astroguru_user', JSON.stringify(syncedUserData));
-          console.log('✅ Credits synced from database after login:', response.data.credits);
-        }
-      } catch (error) {
-        console.error('❌ Failed to sync credits after login:', error);
-      }
-    }
+    console.log('👋 User logged in with complete data:', completeUserData);
   };
 
   // ✅ Database-integrated credit deduction
   const deductCredits = async (amount, reason = 'Question asked') => {
-    if (!user?.id) {
+    if (!user?.userId) {  // ✅ FIXED: Use userId
       console.error('❌ Cannot deduct credits: User not found');
       return {
         success: false,
@@ -131,30 +147,31 @@ export const AuthProvider = ({ children }) => {
     }
 
     try {
-      console.log(`💸 Deducting ${amount} credits for: ${reason}`);
-      const response = await apiDeductCredits(user.id, amount, reason);
+      console.log(`💸 Deducting ${amount} credits for userId ${user.userId}: ${reason}`);
+      const response = await apiDeductCredits(user.userId, amount, reason);  // ✅ FIXED: Use userId
       
       if (response.data.success) {
-        // Update local user state with database response
+        // ✅ Update with response from credit_balance_summary
         const updatedUserData = {
           ...user,
-          credits: response.data.currentCredits
+          credits: response.data.balance.currentCredits
         };
         setUser(updatedUserData);
         localStorage.setItem('astroguru_user', JSON.stringify(updatedUserData));
         
         console.log('✅ Credits deducted successfully:', {
-          previous: response.data.previousCredits,
-          deducted: response.data.deductedAmount,
-          current: response.data.currentCredits
+          previous: response.data.balance.previousCredits,
+          deducted: response.data.balance.deductedAmount,
+          current: response.data.balance.currentCredits
         });
         
         return {
           success: true,
-          previousCredits: response.data.previousCredits,
-          deductedAmount: response.data.deductedAmount,
-          currentCredits: response.data.currentCredits,
-          reason: reason
+          previousCredits: response.data.balance.previousCredits,
+          deductedAmount: response.data.balance.deductedAmount,
+          currentCredits: response.data.balance.currentCredits,
+          reason: reason,
+          message: response.data.message
         };
       } else {
         console.error('❌ Failed to deduct credits:', response.data.error);
@@ -172,8 +189,8 @@ export const AuthProvider = ({ children }) => {
         return {
           success: false,
           error: 'Insufficient credits',
-          currentCredits: error.response.data.currentCredits || user.credits,
-          requiredCredits: error.response.data.requiredCredits || amount
+          currentCredits: error.response.data.balance?.currentCredits || user.credits,
+          requiredCredits: error.response.data.balance?.requiredCredits || amount
         };
       }
       
@@ -187,7 +204,7 @@ export const AuthProvider = ({ children }) => {
 
   // ✅ Database-integrated credit addition
   const addCredits = async (amount, reason = 'Credits purchased', packageInfo = null) => {
-    if (!user?.id) {
+    if (!user?.userId) {  // ✅ FIXED: Use userId
       console.error('❌ Cannot add credits: User not found');
       return {
         success: false,
@@ -196,29 +213,29 @@ export const AuthProvider = ({ children }) => {
     }
 
     try {
-      console.log(`💰 Adding ${amount} credits for: ${reason}`);
-      const response = await apiAddCredits(user.id, amount, reason, packageInfo);
+      console.log(`💰 Adding ${amount} credits for userId ${user.userId}: ${reason}`);
+      const response = await apiAddCredits(user.userId, amount, reason, packageInfo);  // ✅ FIXED: Use userId
       
       if (response.data.success) {
-        // Update local user state with database response
+        // ✅ Update with response from credit_balance_summary
         const updatedUserData = {
           ...user,
-          credits: response.data.currentCredits
+          credits: response.data.balance.currentCredits
         };
         setUser(updatedUserData);
         localStorage.setItem('astroguru_user', JSON.stringify(updatedUserData));
         
         console.log('✅ Credits added successfully:', {
-          previous: response.data.previousCredits,
-          added: response.data.addedAmount,
-          current: response.data.currentCredits
+          previous: response.data.balance.previousCredits,
+          added: response.data.balance.addedAmount,
+          current: response.data.balance.currentCredits
         });
         
         return {
           success: true,
-          previousCredits: response.data.previousCredits,
-          addedAmount: response.data.addedAmount,
-          currentCredits: response.data.currentCredits,
+          previousCredits: response.data.balance.previousCredits,
+          addedAmount: response.data.balance.addedAmount,
+          currentCredits: response.data.balance.currentCredits,
           reason: reason,
           packageInfo: packageInfo,
           message: response.data.message
@@ -239,25 +256,29 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // ✅ Refresh credits from database
+  // ✅ Refresh credits from database (credit_balance_summary)
   const refreshCredits = async () => {
-    if (!user?.id) {
+    if (!user?.userId) {  // ✅ FIXED: Use userId
       console.log('⚠️ Cannot refresh credits: No user ID');
       return;
     }
     
     try {
-      console.log('🔄 Refreshing credits from database...');
-      const response = await getUserCredits(user.id);
+      console.log('🔄 Refreshing credits from credit_balance_summary for userId:', user.userId);
+      const response = await getUserCredits(user.userId);  // ✅ FIXED: Use userId
       if (response.data.success) {
         const updatedUserData = {
           ...user,
-          credits: response.data.credits
+          credits: response.data.balance.currentCredits,
+          credits_limit: response.data.balance.creditsLimit
         };
         setUser(updatedUserData);
         localStorage.setItem('astroguru_user', JSON.stringify(updatedUserData));
-        console.log('✅ Credits refreshed:', response.data.credits);
-        return response.data.credits;
+        console.log('✅ Credits refreshed from database:', {
+          current: response.data.balance.currentCredits,
+          limit: response.data.balance.creditsLimit
+        });
+        return response.data.balance.currentCredits;
       }
     } catch (error) {
       console.error('❌ Failed to refresh credits:', error);
@@ -267,6 +288,7 @@ export const AuthProvider = ({ children }) => {
   // ✅ Legacy updateCredits function (for backward compatibility)
   const updateCredits = (newCredits) => {
     console.log('⚠️ updateCredits (legacy) called with:', newCredits);
+    console.log('⚠️ WARNING: This is a local-only update. Use addCredits/deductCredits for database sync.');
     const updatedUser = { ...user, credits: newCredits };
     setUser(updatedUser);
     localStorage.setItem('astroguru_user', JSON.stringify(updatedUser));
@@ -331,11 +353,11 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('astroguru_user');
     
     // Clear user-specific localStorage items
-    if (user?.id) {
-      localStorage.removeItem(`astroguru_chat_${user.id}`);
-      localStorage.removeItem(`astroguru_first_question_${user.id}`);
-      localStorage.removeItem(`astroguru_draft_${user.id}`);
-      localStorage.removeItem(`astroguru_short_response_${user.id}`);
+    if (user?.userId) {  // ✅ FIXED: Use userId
+      localStorage.removeItem(`astroguru_chat_${user.userId}`);
+      localStorage.removeItem(`astroguru_first_question_${user.userId}`);
+      localStorage.removeItem(`astroguru_draft_${user.userId}`);
+      localStorage.removeItem(`astroguru_short_response_${user.userId}`);
     }
   };
 

@@ -25,7 +25,19 @@ function Home() {
         </div>
       </div>
 
-      {/* Feature Cards */}
+        {/* Call to Action 
+      <div className="services-grid">
+        <button className="service-card cta-button" onClick={handleChat}
+        style={{minHeight: '7rem'}}>
+          <div className="service-icon">💬</div>
+          <div className="service-content">
+            <div className="service-title">Chat With Astrologer</div>
+            <div className="service-desc">Ask your astrology questions now</div>
+          </div>
+        </button>
+      </div>
+
+      {/* Feature Cards 
       <div className="services-grid">
         <button className="service-card" onClick={handleFreeKundli}>
           <div className="service-icon">🔮</div>
@@ -41,6 +53,7 @@ function Home() {
             <div className="service-desc">Divine blessing rituals</div>
           </div>
         </button>
+        
         <button className="service-card" onClick={handleMoonTracker}>
           <div className="service-icon">🌙</div>
           <div className="service-content">
@@ -50,9 +63,10 @@ function Home() {
         </button>
       </div>
 
-      {/* Additional Services */}
-      <div className="services-grid">
-        <button className="service-card" onClick={handleHoroscope}>
+      {/* Additional Services  */}
+      <div className="credit-packages-grid"
+       style={{display: 'grid',justifyContent: 'center', alignItems: 'center',marginTop: '20px', marginBottom: '30%', marginLeft:'40%', marginRight:'40%',gap: '3rem',}}>
+       {/* <button className="service-card" onClick={handleHoroscope}>
           <div className="service-icon">📊</div>
           <div className="service-content">
             <div className="service-title">Daily Horoscope</div>
@@ -65,26 +79,49 @@ function Home() {
             <div className="service-title">Shubh Muhurat</div>
             <div className="service-desc">Auspicious timing guidance</div>
           </div>
-        </button>
-        <button className="service-card" onClick={handleCallGuru}>
-          <div className="service-icon">📞</div>
-          <div className="service-content">
-            <div className="service-title">Call Guru</div>
-            <div className="service-desc">Direct consultation</div>
-          </div>
-        </button>
-      </div>
-
-      {/* Call to Action */}
-      <div className="services-grid">
-        <button className="service-card cta-button" onClick={handleChat}>
+        </button> */}
+        <button className="credit-package" onClick={handleChat}
+         style={{minHeight: '15rem'}}>
           <div className="service-icon">💬</div>
           <div className="service-content">
-            <div className="service-title">Start Free Consultation</div>
-            <div className="service-desc">Ask your astrology questions now</div>
+            <div className="credits-label"
+            style={{fontSize: '1rem', fontWeight: 'bold',color: '#FFD700'}}
+            >Chat Now!</div>
+            <div className="bonus-credits"
+            style={{fontSize: '0.7rem', color: 'white', backgroundColor: '#bab9b942'}}
+            >Get Personalized Guidance Now!</div>
           </div>
         </button>
+        
+<button className="credit-package" onClick={handleCallGuru}
+         style={{minHeight: '15rem'}}>
+          <div className="service-icon">📞</div>
+          <div className="service-content">
+            <div className="credits-label"
+            style={{fontSize: '1rem', fontWeight: 'bold',color: '#FFD700'}}
+            >Take Appointment</div>
+            <div className="bonus-credits"
+            style={{fontSize: '0.7rem', color: 'white', backgroundColor: '#bab9b942'}}
+            >Schedule Your Personalized Astro Guidance</div>
+          </div>
+        </button>
+
+       {/* <button className="credit-package" onClick={handleMoonTracker}
+         style={{minHeight: '15rem'}}>
+          <div className="service-icon">🌙</div>
+          <div className="service-content">
+            <div className="credits-label"
+            style={{fontSize: '1rem', fontWeight: 'bold',color: '#FFD700'}}
+            >LUNAR GUIDANCE</div>
+            <div className="bonus-credits"
+            style={{fontSize: '0.7rem', color: 'white', backgroundColor: '#bab9b942'}}
+            >Get Personalized Guidance Now!</div>
+          </div>
+        </button>*/}
+        
       </div>
+
+    
     </div>
   );
 }

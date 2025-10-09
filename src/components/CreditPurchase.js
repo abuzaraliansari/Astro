@@ -1,118 +1,206 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
+import { getCreditPackages, purchaseCredits } from '../api';
 
 function CreditPurchase() {
   const navigate = useNavigate();
-  const { user, addCredits, refreshCredits } = useAuth();
+  const { user, refreshCredits } = useAuth();
   const [isProcessing, setIsProcessing] = useState(false);
-  const [selectedPackage, setSelectedPackage] = useState(null); // ✅ NEW: Selected package state
+  const [selectedPackage, setSelectedPackage] = useState(null);
+  const [creditPackages, setCreditPackages] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const creditPackages = [
-    {
-      id: 1,
-      credits: 50,
-      price: 99,
-      badge: "STARTER",
-      badgeColor: "starter",
-      bonus: 0,
-      description: "Perfect for casual users"
-    },
-    {
-      id: 2,
-      credits: 120,
-      price: 199,
-      badge: "MOST POPULAR",
-      badgeColor: "popular",
-      bonus: 20,
-      description: "Most popular choice"
-    },
-    {
-      id: 3,
-      credits: 250,
-      price: 399,
-      badge: "BEST VALUE",
-      badgeColor: "value",
-      bonus: 50,
-      description: "Best value for money"
-    },
-    {
-      id: 4,
-      credits: 500,
-      price: 699,
-      badge: "PREMIUM",
-      badgeColor: "premium",
-      bonus: 100,
-      description: "For astrology enthusiasts"
-    }
-  ];
+  // ✅ Fetch credit packages from API on component mount
+  useEffect(() => {
+    const fetchCreditPackages = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        console.log('📦 Fetching credit packages from backend API...');
 
-  // ✅ NEW: Handle package selection
+        const response = await getCreditPackages();
+
+        if (response.data && response.data.success) {
+          const packages = response.data.packages.map(pkg => ({
+            id: pkg.packageId,
+            credits: pkg.baseCredits,
+            price: pkg.price,
+            badge: pkg.packageName,
+            badgeColor: pkg.badgeColor,
+            bonus: pkg.bonusCredits,
+            totalCredits: pkg.totalCredits,
+            description: pkg.description,
+            features: pkg.features
+          }));
+
+          setCreditPackages(packages);
+          console.log('✅ Credit packages loaded:', packages);
+        } else {
+          throw new Error('Failed to fetch credit packages');
+        }
+      } catch (error) {
+        console.error('❌ Error fetching credit packages:', error);
+        setError('Failed to load credit packages. Please refresh the page.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchCreditPackages();
+  }, []);
+
+  // ✅ Handle package selection
   const handlePackageSelect = (packageData) => {
     setSelectedPackage(packageData);
     console.log('📦 Package selected:', packageData);
   };
 
-  // ✅ UPDATED: Purchase handler for selected package only
-  const handlePurchase = async () => {
-    if (!selectedPackage || isProcessing) {
-      if (!selectedPackage) {
-        alert('⚠️ Please select a credit package first!');
-      }
-      return;
+  // ✅ Generate unique transaction ID
+  const generateTransactionId = () => {
+    const timestamp = Date.now();
+    const random = Math.floor(Math.random() * 10000);
+    return `TXN${timestamp}_${user.userId}_${selectedPackage.id}_${random}`;
+  };
+
+
+  // ✅ Purchase handler with limit error handling
+const handlePurchase = async () => {
+  if (!selectedPackage || isProcessing) {
+    if (!selectedPackage) {
+      alert('⚠️ Please select a credit package first!');
     }
+    return;
+  }
+
+  if (!user?.userId) {
+    alert('❌ User not found. Please log in again.');
+    navigate('/login');
+    return;
+  }
+
+  setIsProcessing(true);
+  console.log('💳 Processing purchase:', selectedPackage);
+
+  try {
+    const transactionId = generateTransactionId();
     
-    setIsProcessing(true);
-    console.log('💳 Processing purchase:', selectedPackage);
+    console.log('📤 Sending purchase request:', {
+      userId: user.userId,
+      packageId: selectedPackage.id,
+      transactionId,
+      totalCredits: selectedPackage.totalCredits,
+      amountPaid: selectedPackage.price
+    });
 
-    try {
-      const totalCredits = selectedPackage.credits + selectedPackage.bonus;
-      const packageInfo = {
-        packageId: selectedPackage.id,
-        baseCredits: selectedPackage.credits,
-        bonusCredits: selectedPackage.bonus,
-        price: selectedPackage.price,
-        description: selectedPackage.description,
-        badge: selectedPackage.badge
-      };
+    const response = await purchaseCredits(
+      user.userId,
+      selectedPackage.id,
+      transactionId,
+      'credit_pack',
+      'web',
+      'razorpay',
+      'online',
+      'INR',
+      'completed'
+    );
 
-      // ✅ Add credits through database API
-      const result = await addCredits(
-        totalCredits, 
-        `Credits purchased - ${selectedPackage.description}`, 
-        packageInfo
-      );
+    if (response.data && response.data.success) {
+      const result = response.data;
+      console.log('✅ Purchase successful:', result);
 
-      if (result && result.success) {
-        // ✅ Refresh credits to ensure sync
-        await refreshCredits();
+      await refreshCredits();
 
-        const successMessage = `🎉 Successfully purchased ${totalCredits} credits!\n\n` +
-          `Package: ${selectedPackage.badge} (${selectedPackage.description})\n` +
-          `Previous Balance: ${result.previousCredits} credits\n` +
-          `Credits Added: +${result.addedAmount} credits\n` +
-          `New Balance: ${result.currentCredits} credits`;
+      const successMessage = `🎉 Purchase Successful!\n\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+        `Package: ${result.purchase.packageName}\n` +
+        `Base Credits: ${result.purchase.baseCredits}\n` +
+        `Bonus Credits: +${result.purchase.bonusCredits} 🎁\n` +
+        `Total Credits: ${result.purchase.totalCredits}\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+        `💰 Balance Update:\n` +
+        `Previous: ${result.balance.previousCredits} credits\n` +
+        `Added: +${result.balance.addedCredits} credits\n` +
+        `New Balance: ${result.balance.currentCredits} credits\n\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+        `📊 Limit Info:\n` +
+        `Total Purchased: ${result.limitInfo.totalPurchased} credits\n` +
+        `Remaining Limit: ${result.limitInfo.remainingLimit}\n\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+        `💳 Transaction ID: ${result.purchase.transactionId}`;
 
-        alert(successMessage);
-        console.log('✅ Purchase successful:', result);
-        
-        // ✅ Reset selection after successful purchase
-        setSelectedPackage(null);
-        navigate('/chat');
-      } else {
-        throw new Error(result?.error || 'Purchase failed');
-      }
-    } catch (error) {
-      console.error('❌ Purchase error:', error);
-      alert(`❌ Purchase failed: ${error.message || 'Please try again.'}`);
-    } finally {
-      setIsProcessing(false);
+      alert(successMessage);
+      setSelectedPackage(null);
+      navigate('/chat');
+    } else {
+      throw new Error(response.data?.error || 'Purchase failed');
     }
-  };
+  } catch (error) {
+    console.error('❌ Purchase error:', error);
+    
+    // ✅ Handle credit limit error
+    if (error.response?.status === 400 && error.response?.data?.error === 'Credit limit exceeded') {
+      const limitData = error.response.data;
+      
+      let errorMessage = `⚠️ Credit Limit Exceeded!\n\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+        `${limitData.message}\n\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+        `📊 Your Limit Info:\n` +
+        `Total Limit: ${limitData.limitInfo.creditsLimit} credits\n` +
+        `Already Purchased: ${limitData.limitInfo.totalPurchased} credits\n` +
+        `Remaining Limit: ${limitData.limitInfo.remainingLimit} credits\n` +
+        `Attempted Purchase: ${limitData.limitInfo.attemptedPurchase} credits\n` +
+        `Excess Amount: ${limitData.limitInfo.excessAmount} credits\n\n`;
+      
+      if (limitData.availablePackages && limitData.availablePackages.length > 0) {
+        errorMessage += `━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+          `✅ Available Packages:\n`;
+        limitData.availablePackages.forEach(pkg => {
+          errorMessage += `• ${pkg.name}: ${pkg.totalCredits} credits (₹${pkg.price})\n`;
+        });
+      } else {
+        errorMessage += `━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+          `⚠️ No packages available within your limit.\n`;
+      }
+      
+      errorMessage += `\n━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+        `📞 Contact for Limit Extension:\n` +
+        `${limitData.contactInfo.name}\n` +
+        `Mobile: ${limitData.contactInfo.mobile}`;
+      
+      alert(errorMessage);
+    } 
+    // Handle duplicate transaction
+    else if (error.response?.status === 409) {
+      alert('⚠️ This transaction has already been processed.');
+    } 
+    // Handle other errors
+    else {
+      const errorMessage = error.response?.data?.message || error.message || 'Purchase failed. Please try again.';
+      alert(`❌ ${errorMessage}`);
+    }
+  } finally {
+    setIsProcessing(false);
+  }
+};
 
-  const goBack = () => {
-    navigate('/chat');
-  };
+
+
+  // ✅ Loading state
+  if (isLoading) {
+    return (
+      <div className="credit-purchase-container">
+        <div className="credit-content">
+          <div className="loading-spinner">
+            <div className="spinner">⏳</div>
+            <p>Loading credit packages...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="credit-purchase-container">
@@ -121,48 +209,43 @@ function CreditPurchase() {
       <div className="bg-element bg-star">⭐</div>
       <div className="bg-element bg-crystal">🔮</div>
 
-
       {/* Main Content */}
       <div className="credit-content">
         {/* Title Section */}
         <div className="credit-title-section">
           <h1 className="credit-main-title">💎 Get More Cosmic Credits</h1>
           <p className="credit-subtitle">
-            Unlock unlimited cosmic wisdom with our credit packages.<br/>
+            Unlock unlimited cosmic wisdom with our credit packages.<br />
             Each question costs 5 credits • First question: 10 credits
           </p>
-          {/* ✅ Enhanced current balance display */}
+
+          {/* Current Balance Display */}
           <div className="current-balance-display">
             <span className="balance-label">Your Current Balance:</span>
-            <span className="balance-amount">💎 {user?.credits || 0} Credits</span>
+            <span className='dimond'>💎</span>
+            <span className="balance-amount"> {user?.credits || 0} Credits</span>
             {user?.credits < 10 && <span className="low-credits-warning">⚠️ Low Credits</span>}
           </div>
         </div>
 
-        {/* ✅ NEW: Selected Package Display */}
-        {selectedPackage && (
-          <div className="selected-package-display">
-            <h3 className="selected-title">
-              <span>🎯</span>
-              <span>Selected Package</span>
-            </h3>
-            <div className="selected-info">
-              <span className="selected-badge">{selectedPackage.badge}</span>
-              <span className="selected-credits">{selectedPackage.credits + selectedPackage.bonus} Total Credits</span>
-              <span className="selected-price">₹{selectedPackage.price}</span>
-            </div>
+        {/* Error Message */}
+        {error && (
+          <div className="error-message">
+            <span>⚠️</span>
+            <span>{error}</span>
+            <button onClick={() => window.location.reload()}>Retry</button>
           </div>
         )}
 
         {/* Credit Packages Grid */}
         <div className="credit-packages-grid">
           {creditPackages.map((pkg) => (
-            <div 
-              key={pkg.id} 
+            <div
+              key={pkg.id}
               className={`credit-package ${pkg.badgeColor} ${selectedPackage?.id === pkg.id ? 'selected' : ''}`}
               onClick={() => handlePackageSelect(pkg)}
             >
-              {/* Enhanced Badge */}
+              {/* Badge */}
               <div className={`package-badge badge-${pkg.badgeColor}`}>
                 {pkg.badge}
               </div>
@@ -179,7 +262,7 @@ function CreditPurchase() {
                 {/* Credits Display */}
                 <div className="package-credits">{pkg.credits}</div>
                 <div className="credits-label">
-                  <span>💎</span>
+                  <span className='dimond'>💎</span>
                   <span>Credits</span>
                 </div>
 
@@ -198,15 +281,15 @@ function CreditPurchase() {
 
                 {/* Value Calculation */}
                 <div className="package-value">
-                  Total: {pkg.credits + pkg.bonus} credits • 
-                  ₹{(pkg.price / (pkg.credits + pkg.bonus)).toFixed(1)} per credit
+                  Total: {pkg.totalCredits} credits •
+                  ₹{(pkg.price / pkg.totalCredits).toFixed(1)} per credit
                 </div>
               </div>
             </div>
           ))}
         </div>
 
-        {/* ✅ NEW: Single Purchase Button */}
+        {/* Purchase Section */}
         <div className="purchase-section">
           <button
             className={`main-purchase-btn ${selectedPackage ? 'enabled' : 'disabled'}`}
@@ -216,7 +299,7 @@ function CreditPurchase() {
             {isProcessing ? (
               <>
                 <span className="btn-icon">⏳</span>
-                <span>Processing...</span>
+                <span>Processing Payment...</span>
               </>
             ) : selectedPackage ? (
               <>
@@ -230,11 +313,11 @@ function CreditPurchase() {
               </>
             )}
           </button>
-          
-          {/* ✅ Payment Security Info */}
+
+          {/* Security Info */}
           <div className="security-info">
             <span>🔒</span>
-            <span>Secure payment powered by Stripe • Your data is protected</span>
+            <span>Secure payment powered by Razorpay • 256-bit SSL encryption</span>
           </div>
         </div>
       </div>

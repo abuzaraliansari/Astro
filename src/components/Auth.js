@@ -6,7 +6,7 @@ import { GoogleLogin } from '@react-oauth/google';
 import { Capacitor } from '@capacitor/core';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
-import { googleSignup, googleLogin, searchPlaces } from '../api';
+import { googleSignup, googleLogin, searchPlaces, createSession, endSession, getAllCountries, getPopularCountries, getCountriesByRegion, getAllRegions } from '../api';
 import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
 
 // ================================
@@ -24,6 +24,14 @@ const Auth = ({ onLoginSuccess }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [googleCredential, setGoogleCredential] = useState(null);
+
+
+  // Add these with other state declarations
+  const [placeCountries, setPlaceCountries] = useState([]);
+  const [phoneCountries, setPhoneCountries] = useState([]);
+  const [loadingCountries, setLoadingCountries] = useState(false);
+  const [showPhoneCodeDropdown, setShowPhoneCodeDropdown] = useState(false);
+
 
   // ================================
   // MODAL & UI STATE  
@@ -49,6 +57,8 @@ const Auth = ({ onLoginSuccess }) => {
   const [placeSuggestions, setPlaceSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isLoadingPlaces, setIsLoadingPlaces] = useState(false);
+  // Add this with other state declarations
+  const [selectedPlace, setSelectedPlace] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
 
   // ================================
@@ -61,16 +71,21 @@ const Auth = ({ onLoginSuccess }) => {
   // ================================
   // BIRTH DETAILS STATE
   // ================================
-const [birthDetails, setBirthDetails] = useState({
+  const [birthDetails, setBirthDetails] = useState({
     full_name: '',
-    religion: 'Hindu', // ✅ NEW: Religion field with default
+    religion: 'Hindu',
     birth_day: '',
     birth_month: '',
     birth_year: '',
     birth_time: '',
     birth_place: '',
-    timezone: 'Asia/Kolkata'
+    timezone: 'Asia/Kolkata',
+    country: 'India',
+    country_code: 'in',
+    mobile_number: '',          // ✅ ADD THIS
+    country_code_no: '+91'      // ✅ ADD THIS
   });
+
 
   // ================================
   // DATA CONSTANTS
@@ -153,7 +168,7 @@ const [birthDetails, setBirthDetails] = useState({
   const validateBirthDetails = () => {
     const required = ['full_name', 'religion', 'birth_day', 'birth_month', 'birth_year', 'birth_time', 'birth_place'];
     const missing = required.filter(field => !birthDetails[field]);
-    
+
     if (missing.length > 0) {
       setMessage(`⚠️ Please fill in all required fields: ${missing.join(', ')}`);
       return false;
@@ -172,87 +187,219 @@ const [birthDetails, setBirthDetails] = useState({
 
 
   // ✅ NEW: Handle Registration Completion
+  // ✅ NEW: Handle Registration Completion with DEBUG LOGS
   const handleRegistrationComplete = async () => {
-    if (!googleUserInfo || !validateBirthDetails()) {
+    console.log('🚀 ========== REGISTRATION START ==========');
+    console.log('📋 Current birthDetails:', birthDetails);
+    console.log('📍 Selected place:', selectedPlace);
+    console.log('🌍 Selected country:', selectedCountry);
+    console.log('🔑 Google credential:', googleCredential ? 'EXISTS' : 'MISSING');
+
+    // ✅ Step 1: Validate Full Name
+    console.log('✓ Step 1: Validating full name...');
+    if (!birthDetails.full_name || !birthDetails.full_name.trim()) {
+      console.error('❌ Validation failed: Full name is empty');
+      setMessage('Please enter your full name');
       return;
     }
+    console.log('✅ Full name valid:', birthDetails.full_name);
+
+    // ✅ Step 2: Validate Religion
+    console.log('✓ Step 2: Validating religion...');
+    if (!birthDetails.religion) {
+      console.error('❌ Validation failed: Religion not selected');
+      setMessage('Please select your religion');
+      return;
+    }
+    console.log('✅ Religion valid:', birthDetails.religion);
+
+    // ✅ Step 3: Validate Date
+    console.log('✓ Step 3: Validating birth date...');
+    console.log('Date values:', {
+      day: birthDetails.birth_day,
+      month: birthDetails.birth_month,
+      year: birthDetails.birth_year
+    });
+
+    if (!isValidDate()) {
+      console.error('❌ Validation failed: Invalid birth date');
+      setMessage('Please select a valid birth date');
+      return;
+    }
+    console.log('✅ Birth date valid');
+
+    // ✅ Step 4: Validate Time
+    console.log('✓ Step 4: Validating birth time...');
+    if (!birthDetails.birth_time || !birthDetails.birth_time.trim()) {
+      console.error('❌ Validation failed: Birth time is empty');
+      setMessage('Please select your birth time');
+      return;
+    }
+    console.log('✅ Birth time valid:', birthDetails.birth_time);
+
+    // ✅ Step 5: Validate Place
+    console.log('✓ Step 5: Validating birth place...');
+    console.log('Place validation:', {
+      birthPlace: birthDetails.birth_place,
+      selectedPlace: selectedPlace,
+      hasCoordinates: selectedPlace ? {
+        lat: selectedPlace.latitude,
+        lng: selectedPlace.longitude
+      } : 'No coordinates'
+    });
+
+    if (!birthDetails.birth_place || !birthDetails.birth_place.trim() || !selectedPlace) {
+      console.error('❌ Validation failed: Birth place not selected');
+      setMessage('Please select your birth place');
+      return;
+    }
+    console.log('✅ Birth place valid');
+
+    console.log('✅ All validations passed! Proceeding with registration...');
 
     setIsLoading(true);
-    setMessage('📝 Completing registration...');
+    setMessage('Completing registration...');
 
     try {
-      // Format birth date
+      // ✅ Step 6: Format Birth Date
+      console.log('✓ Step 6: Formatting birth date...');
       const birthDate = `${birthDetails.birth_year}-${birthDetails.birth_month.toString().padStart(2, '0')}-${birthDetails.birth_day.toString().padStart(2, '0')}`;
-      
-      // Prepare registration data
+      console.log('✅ Formatted birth date:', birthDate);
+
+      // ✅ Step 7: Get Referral Code
+      console.log('✓ Step 7: Checking for referral code...');
+      const pendingReferralCode = localStorage.getItem('pending_referral_code');
+      console.log('Referral code:', pendingReferralCode || 'None');
+
+      // ✅ Step 8: Prepare Registration Data
+      console.log('✓ Step 8: Preparing registration data...');
       const registrationData = {
-        token: googleCredential, // Use the Google JWT token
+        token: googleCredential,
         profile: {
           full_name: birthDetails.full_name.trim(),
           religion: birthDetails.religion,
           birth_date: birthDate,
           birth_time: birthDetails.birth_time,
-          birth_place: birthDetails.birth_place.trim(),
-          timezone: birthDetails.timezone
+          birth_place: selectedPlace?.description || birthDetails.birth_place,
+          country_code: selectedPlace?.country_code || selectedCountry.code.toUpperCase(),
+          latitude: selectedPlace?.latitude || null,
+          longitude: selectedPlace?.longitude || null,
+          mobile_number: birthDetails.mobile_number || null,
+          country_code_no: birthDetails.country_code_no || '+91',
+          referredBy: pendingReferralCode || null
         }
       };
 
-      console.log('📝 Sending registration data:', registrationData);
+      console.log('📦 Registration data prepared:');
+      console.log(JSON.stringify(registrationData, null, 2));
 
-      // Use your existing googleSignup function
+      // ✅ Step 9: Call Signup API
+      console.log('✓ Step 9: Calling googleSignup API...');
+      console.log('API call parameters:', {
+        credential: googleCredential ? 'EXISTS (length: ' + googleCredential.length + ')' : 'MISSING',
+        profile: registrationData.profile
+      });
+
       const response = await googleSignup(googleCredential, registrationData.profile);
 
+      console.log('✅ API Response received:', response);
+      console.log('Response data:', response.data);
+
+      // ✅ Step 10: Handle Success Response
       if (response.data.success) {
-        console.log('✅ Registration successful!');
-        
+        console.log('🎉 Registration successful!');
+        console.log('User data:', response.data.user);
+        console.log('Waiting list status:', response.data.waitingList);
+
+        // Clear referral code after successful use
+        localStorage.removeItem('pending_referral_code');
+        console.log('✅ Referral code cleared from localStorage');
+
         if (response.data.waitingList) {
-          // User registered but on waiting list
+          console.log('📋 User added to waiting list');
           setShowWaitingListModal(true);
           setShowBirthDetailsPopup(false);
-          setMessage('');
+          setMessage(response.data.message);
+
+          if (response.data.userData?.referrerMilestoneReached) {
+            console.log('🎉 Referrer reached milestone!', response.data.userData.milestoneDetails);
+          }
         } else {
-          // User registered and active
+          console.log('✅ User activated - proceeding to home');
           setUser(response.data.user);
           setMessage(response.data.message);
-          if (onLoginSuccess) onLoginSuccess(response.data.user);
+
+          if (onLoginSuccess) {
+            console.log('✅ Calling onLoginSuccess callback');
+            onLoginSuccess(response.data.user);
+          }
+
           setShowBirthDetailsPopup(false);
-          setTimeout(() => navigate('/chat'), 2000);
+          console.log('🏠 Navigating to home in 2 seconds...');
+          setTimeout(() => navigate('/home'), 2000);
         }
-        
-        // Clear form data
+
+        // Cleanup
+        console.log('🧹 Cleaning up form data...');
         clearBirthDetails();
+        setSelectedPlace(null);
         setGoogleCredential(null);
         setGoogleUserInfo(null);
+        console.log('✅ Cleanup complete');
+
       } else {
+        console.error('❌ Registration failed - success: false');
         throw new Error(response.data.error || 'Registration failed');
       }
+
     } catch (error) {
-      console.error('❌ Registration error:', error);
-      
+      console.error('💥 ========== REGISTRATION ERROR ==========');
+      console.error('Error type:', error.constructor.name);
+      console.error('Error message:', error.message);
+      console.error('Full error:', error);
+
+      if (error.response) {
+        console.error('Error response status:', error.response.status);
+        console.error('Error response data:', error.response.data);
+        console.error('Error response headers:', error.response.headers);
+      }
+
       if (error.response?.data) {
         const errorData = error.response.data;
-        
+        console.log('📋 Processing error response data:', errorData);
+
         if (errorData.waitingList) {
+          console.log('📋 Error: User on waiting list');
           setShowWaitingListModal(true);
           setShowBirthDetailsPopup(false);
-          setMessage('');
+          setMessage(errorData.message);
         } else if (errorData.userExists) {
-          setMessage(`❌ ${errorData.message}`);
+          console.log('👤 Error: User already exists');
+          setMessage(errorData.message);
           setShowBirthDetailsPopup(false);
+
           setTimeout(() => {
+            console.log('🔄 Switching to login mode...');
             setIsSignup(false);
             setMessage('Account exists. Switched to login mode.');
           }, 3000);
         } else {
-          setMessage(`❌ ${errorData.message || 'Registration failed'}`);
+          console.error('❌ Other error:', errorData.message);
+          setMessage(errorData.message || 'Registration failed');
         }
       } else {
-        setMessage(`❌ Registration failed: ${error.message}`);
+        console.error('🌐 Network error - no response from server');
+        setMessage('Network error. Please check your connection.');
       }
+
+      console.error('========== ERROR HANDLING COMPLETE ==========');
     } finally {
+      console.log('🏁 Registration process finished');
       setIsLoading(false);
     }
   };
+
+
 
   // ================================
   // CLOCK HELPER FUNCTIONS
@@ -382,8 +529,18 @@ const [birthDetails, setBirthDetails] = useState({
 
   const handlePlaceSelect = (place) => {
     try {
-      let formattedPlace = '';
+      console.log('📍 Place selected with coordinates:', {
+        description: place.description,
+        latitude: place.latitude,
+        longitude: place.longitude,
+        country: place.country_code
+      });
 
+      // Store full place object with coordinates
+      setSelectedPlace(place);
+
+      // Format display text
+      let formattedPlace;
       if (place.main_text && place.secondary_text) {
         const mainText = place.main_text.trim();
         const secondaryText = place.secondary_text.trim();
@@ -392,15 +549,22 @@ const [birthDetails, setBirthDetails] = useState({
         formattedPlace = place.description || place.formatted_address || place.main_text || 'Selected Location';
       }
 
+      // ✅ FIXED: Use birth_place with underscore
       handleBirthDetailsChange('birth_place', formattedPlace);
       setShowSuggestions(false);
-      setTimeout(() => setPlaceSuggestions([]), 200);
+      setSearchQuery(formattedPlace);  // ✅ Update search query to show selected place
+
+      setTimeout(() => {
+        setPlaceSuggestions([]);
+      }, 200);
     } catch (error) {
-      console.error('❌ Error selecting place:', error);
+      console.error('Error selecting place:', error);
       setPlaceSuggestions([]);
       setShowSuggestions(false);
     }
   };
+
+
 
   const handlePlaceKeyDown = (event, place) => {
     if (event.key === 'Enter' || event.key === ' ') {
@@ -422,12 +586,24 @@ const [birthDetails, setBirthDetails] = useState({
   // COUNTRY SELECTION FUNCTIONS
   // ================================
   const handleCountrySelect = (country) => {
+    console.log('🌍 Country selected:', country);
     setSelectedCountry(country);
     setShowCountryDropdown(false);
+
+    // ✅ FIXED: Update birthDetails with country info
+    setBirthDetails(prev => ({
+      ...prev,
+      country: country.name,
+      country_code: country.code
+    }));
+
+    // Clear place selection when country changes
     handleBirthDetailsChange('birth_place', '');
     setPlaceSuggestions([]);
     setSearchQuery('');
+    setSelectedPlace(null);
   };
+
 
   const toggleCountryDropdown = () => {
     setShowCountryDropdown(!showCountryDropdown);
@@ -461,39 +637,57 @@ const [birthDetails, setBirthDetails] = useState({
   // BIRTH DETAILS MANAGEMENT
   // ================================
   const handleBirthDetailsChange = (field, value) => {
-    setBirthDetails(prev => ({
-      ...prev,
-      [field]: value
-    }));
+    if (field === 'country') {
+      // Assume you have a countries list or object to find country code by name
+      const selectedCountry = countries.find(c => c.name === value);
+      setBirthDetails(prev => ({
+        ...prev,
+        country: value,
+        country_code: selectedCountry ? selectedCountry.code : '' // set country code too
+      }));
+    } else {
+      setBirthDetails(prev => ({
+        ...prev,
+        [field]: value
+      }));
+    }
   };
+
 
   const clearBirthDetails = () => {
     setBirthDetails({
-      full_name: '',
+      full_name: '',  // ✅ FIXED: with underscore
       religion: 'Hindu',
-      birth_day: '',
-      birth_month: '',
-      birth_year: '',
-      birth_time: '',
-      birth_place: '',
-      timezone: 'Asia/Kolkata'
+      birth_day: '',  // ✅ FIXED: with underscore
+      birth_month: '',  // ✅ FIXED: with underscore
+      birth_year: '',  // ✅ FIXED: with underscore
+      birth_time: '',  // ✅ FIXED: with underscore
+      birth_place: '',  // ✅ FIXED: with underscore
+      timezone: 'Asia/Kolkata',
+      country: 'India',
+      country_code: 'in'
     });
     setPlaceSuggestions([]);
     setShowSuggestions(false);
+    setSelectedPlace(null);
+    setSearchQuery('');  // ✅ Clear search query too
   };
+
+
 
   // ================================
   // ✅ UPDATED GOOGLE AUTHENTICATION - INTEGRATES WITH YOUR BACKEND
   // ================================
+  // UPDATED GOOGLE AUTHENTICATION - INTEGRATES WITH YOUR BACKEND + SESSION CREATION
   const handleGoogleAuth = async (credentialResponse) => {
     if (!credentialResponse?.credential) {
-      setMessage('❌ Google authentication failed. Please try again.');
+      setMessage('Google authentication failed. Please try again.');
       return;
     }
 
     setIsLoading(true);
-    setMessage('🔐 Connecting to the cosmos...');
-    console.log('🔐 Starting Google authentication...');
+    setMessage('Connecting to the cosmos...');
+    console.log('Starting Google authentication...');
 
     try {
       // Store the credential for potential registration
@@ -502,64 +696,97 @@ const [birthDetails, setBirthDetails] = useState({
       // Decode the JWT token to get user info for display purposes
       const base64Url = credentialResponse.credential.split('.')[1];
       const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-      const jsonPayload = decodeURIComponent(atob(base64).split('').map(function (c) {
-        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-      }).join(''));
-
+      const jsonPayload = decodeURIComponent(
+        atob(base64)
+          .split('')
+          .map(function (c) {
+            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+          })
+          .join('')
+      );
       const userInfo = JSON.parse(jsonPayload);
-      console.log('👤 Google user info:', userInfo);
+      console.log('Google user info:', userInfo);
       setGoogleUserInfo(userInfo);
 
-      // ✅ Try login first (your existing googleLogin function handles user existence check)
+      // Try login first (your existing googleLogin function handles user existence check)
       try {
-        console.log('🔍 Attempting login first...');
+        console.log('Attempting login first...');
         const response = await googleLogin(credentialResponse.credential);
 
         if (response.data.success) {
-          // ✅ Login successful - user exists and is active
+          // Login successful - user exists and is active
           console.log('✅ Login successful!');
+          console.log('👤 User data:', response.data.user);
+
           setUser(response.data.user);
           setMessage(response.data.message);
-          if (onLoginSuccess) onLoginSuccess(response.data.user);
+
+          // ✅ NEW: CREATE SESSION AFTER SUCCESSFUL LOGIN
+          try {
+            console.log('🔐 Creating session for user:', response.data.user.id);
+            // ✅ CORRECT - Use userId (database ID)
+            const sessionResponse = await createSession(response.data.user.userId);
+
+
+            if (sessionResponse.data.success) {
+              console.log('✅ Session created successfully:', {
+                sessionId: sessionResponse.data.session.sessionId,
+                userName: sessionResponse.data.session.userName
+              });
+
+              // Store session info in localStorage
+              localStorage.setItem('astroguru_session_id', sessionResponse.data.session.sessionId);
+              localStorage.setItem('astroguru_user_id', response.data.user.id);
+            } else {
+              console.warn('⚠️ Session creation failed, but login successful');
+            }
+          } catch (sessionError) {
+            console.error('❌ Session creation error:', sessionError);
+            // Don't block login if session creation fails
+            console.warn('⚠️ Continuing login without session tracking');
+          }
+
+          // Continue with login flow
+          if (onLoginSuccess) {
+            onLoginSuccess(response.data.user);
+          }
+
           setTimeout(() => navigate('/home'), 1500);
         }
       } catch (loginError) {
-        console.log('🔍 Login attempt result:', loginError.response?.data);
-        
+        console.log('Login attempt result:', loginError.response?.data);
+
         if (loginError.response?.data) {
           const errorData = loginError.response.data;
 
           if (errorData.waitingList) {
-            // ✅ User exists but inactive - show waiting list modal
-            console.log('⏳ User exists but not active - showing waiting list modal');
+            // User exists but inactive - show waiting list modal
+            console.log('User exists but not active - showing waiting list modal');
             setShowWaitingListModal(true);
             setMessage('');
           } else if (errorData.needsSignup) {
-            // ✅ User doesn't exist - show registration modal
-            console.log('🆕 New user - showing registration modal');
-            setBirthDetails(prev => ({
-              ...prev,
-              full_name: userInfo.name || ''
-            }));
+            // User doesn't exist - show registration modal
+            console.log('New user - showing registration modal');
+            setBirthDetails((prev) => ({ ...prev, fullname: userInfo.name }));
             setShowBirthDetailsPopup(true);
             setMessage('');
           } else {
             // Other login errors
-            setMessage(`❌ ${errorData.message || 'Login failed'}`);
+            setMessage(errorData.message || 'Login failed');
           }
         } else {
           // Network or other errors
-          setMessage('❌ Network error. Please check your connection.');
+          setMessage('Network error. Please check your connection.');
         }
       }
-
     } catch (error) {
-      console.error('❌ Authentication error:', error);
-      setMessage(`❌ Authentication failed: ${error.message}`);
+      console.error('Authentication error:', error);
+      setMessage('Authentication failed: ' + error.message);
     } finally {
       setIsLoading(false);
     }
   };
+
 
   const handleNativeGoogleAuth = async () => {
     setIsLoading(true);
@@ -688,7 +915,7 @@ const [birthDetails, setBirthDetails] = useState({
           setShowBirthDetailsPopup(false);
           clearBirthDetails();
           setGoogleCredential(null);
-          setTimeout(() => navigate('/chat'), 2000);
+          setTimeout(() => navigate('/home'), 2000);
         }
       }
     } catch (err) {
@@ -751,6 +978,96 @@ const [birthDetails, setBirthDetails] = useState({
     alert('📞 Contact number copied to clipboard!');
   };
 
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      // Get all dropdown containers
+      const countryDropdown = document.querySelector('.country-dropdown-container:not(.phone-code-dropdown)');
+      const placeDropdown = document.querySelector('.place-dropdown-container');
+      const religionDropdown = document.querySelector('.religion-dropdown-container');
+      const phoneCodeDropdown = document.querySelector('.phone-code-dropdown'); // ✅ Specific class
+
+      if (countryDropdown && !countryDropdown.contains(event.target)) {
+        setShowCountryDropdown(false);
+      }
+      if (placeDropdown && !placeDropdown.contains(event.target)) {
+        setShowSuggestions(false);
+      }
+      if (religionDropdown && !religionDropdown.contains(event.target)) {
+        setShowReligionDropdown(false);
+      }
+      if (phoneCodeDropdown && !phoneCodeDropdown.contains(event.target)) {
+        setShowPhoneCodeDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, []);
+
+
+
+  // Load countries from backend
+  useEffect(() => {
+    const loadCountries = async () => {
+      try {
+        setLoadingCountries(true);
+        console.log('🌍 Loading countries from backend...');
+
+        // Use getAllCountries() - returns all countries with phone codes, flags, etc.
+        const response = await getAllCountries();
+
+        if (response.data.success) {
+          const countries = response.data.countries;
+
+          // Set both lists (for place selector and phone code selector)
+          setPlaceCountries(countries);
+          setPhoneCountries(countries);
+
+          console.log('✅ Countries loaded:', countries.length);
+        }
+      } catch (error) {
+        console.error('❌ Failed to load countries:', error);
+
+        // Fallback to minimal list if backend fails
+        const fallback = [
+          { name: 'India', flag: '🇮🇳', code: '+91', iso: 'IN' },
+          { name: 'United States', flag: '🇺🇸', code: '+1', iso: 'US' },
+          { name: 'United Kingdom', flag: '🇬🇧', code: '+44', iso: 'GB' }
+        ];
+        setPlaceCountries(fallback);
+        setPhoneCountries(fallback);
+      } finally {
+        setLoadingCountries(false);
+      }
+    };
+
+    loadCountries();
+  }, []);
+
+
+  useEffect(() => {
+    // Check for referral code in URL (e.g., ?ref=K0ABUZARSUI7)
+    const urlParams = new URLSearchParams(window.location.search);
+    const refCode = urlParams.get('ref');
+
+    if (refCode) {
+      console.log('🎫 Referral code detected in URL:', refCode);
+      localStorage.setItem('pending_referral_code', refCode);
+      setMessage(`🎁 Welcome! Signing up with referral code: ${refCode}`);
+
+      // Optional: Remove the ref parameter from URL to clean it up
+      const url = new URL(window.location);
+      url.searchParams.delete('ref');
+      window.history.replaceState({}, '', url);
+    }
+  }, []);
+
   // ================================
   // USEEFFECT HOOKS
   // ================================
@@ -783,33 +1100,6 @@ const [birthDetails, setBirthDetails] = useState({
     };
     initializeGoogleAuth();
   }, [isNative, WEB_CLIENT_ID]);
-
-  // Click outside handlers
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      const countryDropdown = document.querySelector('.country-dropdown-container');
-      const placeDropdown = document.querySelector('.place-dropdown-container');
-       const religionDropdown = document.querySelector('.religion-dropdown-container'); // ✅ NEW
-
-      if (countryDropdown && !countryDropdown.contains(event.target)) {
-        setShowCountryDropdown(false);
-      }
-      if (placeDropdown && !placeDropdown.contains(event.target)) {
-        setShowSuggestions(false);
-      }
-       if (religionDropdown && !religionDropdown.contains(event.target)) { // ✅ NEW
-        setShowReligionDropdown(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      if (searchTimeoutRef.current) {
-        clearTimeout(searchTimeoutRef.current);
-      }
-    };
-  }, []);
 
   // ================================
   // RENDER COMPONENT
@@ -1009,7 +1299,7 @@ const [birthDetails, setBirthDetails] = useState({
                     </div>
                   </div>
                 </div>
-                
+
 
                 {/* Date/Time/Location Fields */}
                 <div className="form-grid-optimized">
@@ -1065,6 +1355,80 @@ const [birthDetails, setBirthDetails] = useState({
                     </div>
                   </div>
 
+
+                  {/* Mobile Number Row */}
+                  <div className="form-row mobile-number-row">
+                    {/* Phone Code Selector */}
+                    <div className="form-field form-field-country-small">
+                      <label className="form-label">No. Code</label>
+                      <div className="country-dropdown-container country-compact phone-code-dropdown">
+                        <div
+                          className={`country-dropdown-trigger country-compact-size ${showPhoneCodeDropdown ? 'active' : ''}`}
+                          onClick={() => setShowPhoneCodeDropdown(!showPhoneCodeDropdown)}
+                        >
+                          <div className="country-dropdown-content country-compact-content">
+                            <span className="country-flag">
+                              {phoneCountries.find(c => c.code === birthDetails.country_code_no)?.flag || '🇮🇳'}
+                            </span>
+                            <span className="country-code">
+                              {birthDetails.country_code_no || '+91'}
+                            </span>
+                            <span className={`country-arrow ${showPhoneCodeDropdown ? 'up' : 'down'}`}>
+                              {showPhoneCodeDropdown ? '▲' : '▼'}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Phone Code Dropdown Menu */}
+                        {showPhoneCodeDropdown && (
+                          <div className="country-dropdown-menu country-compact-menu phone-code-menu">
+                            {loadingCountries ? (
+                              <div className="dropdown-loading">Loading countries...</div>
+                            ) : (
+                              phoneCountries.map((country) => (
+                                <div
+                                  key={country.iso}
+                                  className={`country-dropdown-item ${birthDetails.country_code_no === country.code ? 'selected' : ''}`}
+                                  onClick={() => {
+                                    handleBirthDetailsChange('country_code_no', country.code);
+                                    setShowPhoneCodeDropdown(false);
+                                  }}
+                                >
+                                  <span className="country-flag">{country.flag}</span>
+                                  <span className="country-code-small">({country.code})</span>
+                                  {birthDetails.country_code_no === country.code && (
+                                    <span className="country-selected-icon">✓</span>
+                                  )}
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Mobile Number Input */}
+                    <div className="form-field form-field-name">
+                      <label className="form-label">Mobile Number</label>
+                      <input
+                        type="tel"
+                        value={birthDetails.mobile_number || ''}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/[^0-9]/g, '');
+                          if (value.length <= 15) {
+                            handleBirthDetailsChange('mobile_number', value);
+                          }
+                        }}
+                        placeholder="Enter mobile number"
+                        className="form-input"
+                        maxLength="15"
+                      />
+                    </div>
+                  </div>
+
+
+
+
                   {/* Row 2: Country and Place */}
                   <div className="form-row country-place-row">
                     {/* Country Selector */}
@@ -1085,24 +1449,33 @@ const [birthDetails, setBirthDetails] = useState({
                         </div>
 
                         {/* Country Dropdown Menu */}
+                        {/* Country Dropdown Menu */}
                         {showCountryDropdown && (
                           <div className="country-dropdown-menu country-compact-menu">
-                            {countries.map((country) => (
-                              <div
-                                key={country.code}
-                                className={`country-dropdown-item ${selectedCountry.code === country.code ? 'selected' : ''}`}
-                                onClick={() => handleCountrySelect(country)}
-                              >
-                                <span className="country-flag">{country.flag}</span>
-                                <span className="country-name">{country.name}</span>
-                                <span className="country-code-small">({country.code.toUpperCase()})</span>
-                                {selectedCountry.code === country.code && (
-                                  <span className="country-selected-icon">✓</span>
-                                )}
-                              </div>
-                            ))}
+                            {loadingCountries ? (
+                              <div className="dropdown-loading">Loading countries...</div>
+                            ) : (
+                              placeCountries.map((country) => (
+                                <div
+                                  key={country.iso}
+                                  className={`country-dropdown-item ${selectedCountry.code === country.iso?.toLowerCase() ? 'selected' : ''}`}
+                                  onClick={() => handleCountrySelect({
+                                    name: country.name,
+                                    code: country.iso?.toLowerCase() || country.code,
+                                    flag: country.flag
+                                  })}
+                                >
+                                  <span className="country-name">{country.name}</span>
+                                  <span className="country-code-small">({country.iso || country.code.toUpperCase()})</span>
+                                  {selectedCountry.code === country.iso?.toLowerCase() && (
+                                    <span className="country-selected-icon">✓</span>
+                                  )}
+                                </div>
+                              ))
+                            )}
                           </div>
                         )}
+
                       </div>
                     </div>
 
