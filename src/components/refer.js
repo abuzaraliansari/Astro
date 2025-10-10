@@ -144,18 +144,6 @@ const Refer = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="refer-page">
-        <div className="refer-container">
-          <div className="loading-spinner">
-            <div className="spinner"></div>
-            <p>Loading your referral code...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="refer-page">
@@ -375,7 +363,7 @@ const Refer = () => {
           </div>
         )}
 
-        {/* Refresh Button */}
+        {/* Refresh Button 
         <div className="refresh-section">
           <button 
             className="refresh-btn"
@@ -384,7 +372,7 @@ const Refer = () => {
           >
             {loadingProgress ? '🔄 Refreshing...' : '🔄 Refresh Stats'}
           </button>
-        </div>
+        </div>*/}
       </div>
     </div>
   );

@@ -1657,85 +1657,6 @@ useEffect(() => {
     console.log('═══════════════════════════════════════════════');
   };
 
-
-
-
-
-
-  // ✅ UPDATED: Backend-based horoscope loading with language support
-  /*const loadTodaysHoroscope = async () => {
-    console.log('🔮 Loading personalized horoscope with Backend Prompts (FREE - ONE TIME ONLY)');
-
-    const profile = tempBirthProfile || user;
-    const userName = profile?.given_name || profile?.name?.split(' ')[0] || 'beta';
-
-    setIsTyping(true);
-
-    const religion = profile?.religion || 'Hindu';
-    const guruBase = getPrompt('base.GURU_BASE', 'You are Guru ji, wise astrologer.');
-    const horoscopePrompt = getPrompt('template.HOROSCOPE_PROMPT', 'Provide today\'s horoscope in 25-30 words. Keep positive, actionable.');
-    const religionContext = getReligionPrompt(religion);
-
-    const languageInstruction = getLanguageInstruction(selectedLanguage);
-    const languageTemplate = replaceTemplate(
-      getPrompt('template.LANGUAGE_INSTRUCTION', 'IMPORTANT: {languageInstruction}'),
-      { languageInstruction }
-    );
-
-    const userInfo = replaceTemplate(
-      'User: {name}, {religion} religion. Birth: {birthDate}.',
-      {
-        name: userName,
-        religion: religion,
-        birthDate: profile?.birth_date || 'unknown'
-      }
-    );
-
-    const horoscopeQuery = `${guruBase} ${userInfo}\n\n${horoscopePrompt} Use ${religion} spiritual terms.\n\n${languageTemplate}`;
-
-    console.log(`🔮 Auto-loading personalized horoscope for ${religion} devotee in ${selectedLanguage} (FREE - ONE TIME)`);
-
-    try {
-      const { data } = await sendMessage(horoscopeQuery);
-
-      setTimeout(() => {
-        push({
-          message: `**Today's personalized horoscope reveals:** ${data.reply}`,
-          direction: 'incoming',
-          sender: 'assistant',
-          timestamp: new Date().toISOString()
-        });
-
-        if (user?.id) {
-          localStorage.setItem(`astroguru_free_horoscope_${user.id}`, JSON.stringify(true));
-          console.log('✅ Free horoscope marked as provided for user');
-        }
-      }, 1000);
-
-    } catch (err) {
-      const religionBlessing = getReligionBlessing(profile?.religion);
-
-      setTimeout(() => {
-        push({
-          message: `**Today's cosmic guidance for ${userName}:** The celestial energies are particularly favorable for you today, my child. Your birth chart indicates strong planetary support for new beginnings and spiritual growth. May ${religionBlessing} be with you! 🌟✨`,
-          direction: 'incoming',
-          sender: 'assistant',
-          timestamp: new Date().toISOString()
-        });
-
-        if (user?.id) {
-          localStorage.setItem(`astroguru_free_horoscope_${user.id}`, JSON.stringify(true));
-          console.log('✅ Free horoscope marked as provided for user (fallback)');
-        }
-      }, 1000);
-      console.error('Horoscope loading error:', err);
-    } finally {
-      setTimeout(() => {
-        setIsTyping(false);
-      }, 800);
-    }
-  };
-*/
   // Clear draft when message is successfully sent
   const clearDraft = () => {
     if (user?.id) {
@@ -1798,13 +1719,13 @@ async function handleSend() {
     
     if (userSettings?.MessageType === 'SHORT_LIMIT' || shortResponse) {
       spendTypeId = 1; // Short message
-      creditsRequired = 1; // Assuming 1 credit for short
+      creditsRequired = 10; // Assuming 1 credit for short
     } else if (userSettings?.MessageType === 'DETAILED') {
       spendTypeId = 2; // Detailed message
-      creditsRequired = 5; // Assuming 5 credits for detailed
+      creditsRequired = 15; // Assuming 5 credits for detailed
     } else {
       spendTypeId = 3; // Medium message
-      creditsRequired = 3; // Assuming 3 credits for medium
+      creditsRequired = 20; // Assuming 3 credits for medium
     }
 
     console.log('💳 Deducting credits:', {
@@ -2018,8 +1939,7 @@ const handleKeyPress = (e) => {
     return (
       <div className="chatbot-container">
         <div className="loading-prompts">
-          <div className="loading-spinner">🔮</div>
-          <p>Loading cosmic wisdom from the backend...</p>
+          <p>Loading cosmic wisdom...</p>
         </div>
       </div>
     );

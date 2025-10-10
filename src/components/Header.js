@@ -1,16 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 import { endSession } from '../api';
 import InsufficientCreditsModal from './InsufficientCreditsModal';
 
+
+
 function Header() {
   const location = useLocation();
+    const navigate = useNavigate(); // ✅ Add this
   const { user, logout, updateUserProfile } = useAuth();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showNavMenu, setShowNavMenu] = useState(false);
   const [showInsufficientCreditsModal, setShowInsufficientCreditsModal] = useState(false);
-  const [showProfileModal, setShowProfileModal] = useState(false);
+
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [editMode, setEditMode] = useState({
     fullName: false,
@@ -59,7 +62,7 @@ function Header() {
     };
     const handleUserLoggedOut = () => {
       setShowUserMenu(false);
-      setShowProfileModal(false);
+      //setShowProfileModal(false);
       window.location.href = '/';
     };
     window.addEventListener('storage', handleStorageChange);
@@ -110,7 +113,7 @@ function Header() {
     const handleClickOutside = (event) => {
       if (!event.target.closest('.user-menu-container')) setShowUserMenu(false);
       if (!event.target.closest('.nav-dropdown-mobile')) setShowNavMenu(false);
-      if (!event.target.closest('.profile-modal') && !event.target.closest('.profile-modal-trigger')) setShowProfileModal(false);
+      if (!event.target.closest('.profile-modal') && !event.target.closest('.profile-modal-trigger'));
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -124,6 +127,9 @@ function Header() {
     }
   };
 
+
+
+
   // Enhanced logout with confirmation and loading state
   const handleLogout = async () => {
     if (!window.confirm('Are you sure you want to logout? This will clear all your session data.')) {
@@ -136,7 +142,7 @@ function Header() {
 
     setIsLoggingOut(true);
     setShowUserMenu(false);
-    setShowProfileModal(false);
+    //setShowProfileModal(false);
 
     try {
       document.body.style.cursor = 'wait';
@@ -250,11 +256,12 @@ function Header() {
 
   const handleMobileMenuClick = () => setShowNavMenu(false);
 
-  const handleProfileClick = () => {
-    console.log('Profile clicked');
-    //setShowProfileModal(true);
-    //setShowUserMenu(false);
-  };
+ const handleProfileClick = () => {
+  console.log('Profile clicked');
+  navigate('/profile'); // ✅ Navigate to profile page
+  setShowUserMenu(false);
+};
+
 
   const handleEditToggle = (field) => {
     setEditMode(prev => ({
@@ -339,310 +346,8 @@ function Header() {
       )}
 
       {/* Profile Modal */}
-      {showProfileModal && (
-        <div className="profile-modal-overlay">
-          <div className="profile-modal">
-            <div className="profile-modal-header">
-              <h2>👤 Profile Information</h2>
-              <button
-                className="profile-modal-close"
-                onClick={() => setShowProfileModal(false)}
-              >
-                ✕
-              </button>
-            </div>
-            <div className="profile-modal-content">
-              {/* Full Name */}
-              <div className="profile-field">
-                <label className="profile-label">
-                  <span className="field-icon">👤</span>
-                  Full Name
-                </label>
-                <div className="profile-input-group">
-                  {editMode.fullName ? (
-                    <input
-                      type="text"
-                      value={profileData.fullName}
-                      onChange={(e) => handleFieldChange('fullName', e.target.value)}
-                      className="profile-input editing"
-                      placeholder="Enter your full name"
-                    />
-                  ) : (
-                    <span className="profile-value">
-                      {profileData.fullName || 'Not set'}
-                    </span>
-                  )}
-                  <div className="profile-actions">
-                    {editMode.fullName ? (
-                      <>
-                        <button
-                          className="profile-btn save"
-                          onClick={() => handleSaveField('fullName')}
-                        >
-                          ✓
-                        </button>
-                        <button
-                          className="profile-btn cancel"
-                          onClick={() => handleCancelEdit('fullName')}
-                        >
-                          ✕
-                        </button>
-                      </>
-                    ) : (
-                      <button
-                        className="profile-btn edit"
-                        onClick={() => handleEditToggle('fullName')}
-                      >
-                        ✏️
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-              {/* Religion */}
-              <div className="profile-field">
-                <label className="profile-label">
-                  <span className="field-icon">🕉️</span>
-                  Religion
-                </label>
-                <div className="profile-input-group">
-                  {editMode.religion ? (
-                    <select
-                      value={profileData.religion}
-                      onChange={(e) => handleFieldChange('religion', e.target.value)}
-                      className="profile-input editing"
-                    >
-                      <option value="">Select Religion</option>
-                      {religionOptions.map(religion => (
-                        <option key={religion} value={religion}>
-                          {religion}
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <span className="profile-value">
-                      {profileData.religion || 'Not set'}
-                    </span>
-                  )}
-                  <div className="profile-actions">
-                    {editMode.religion ? (
-                      <>
-                        <button
-                          className="profile-btn save"
-                          onClick={() => handleSaveField('religion')}
-                        >
-                          ✓
-                        </button>
-                        <button
-                          className="profile-btn cancel"
-                          onClick={() => handleCancelEdit('religion')}
-                        >
-                          ✕
-                        </button>
-                      </>
-                    ) : (
-                      <button
-                        className="profile-btn edit"
-                        onClick={() => handleEditToggle('religion')}
-                      >
-                        ✏️
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-              {/* Date of Birth */}
-              <div className="profile-field">
-                <label className="profile-label">
-                  <span className="field-icon">📅</span>
-                  Date of Birth
-                </label>
-                <div className="profile-input-group">
-                  {editMode.dateOfBirth ? (
-                    <input
-                      type="date"
-                      value={profileData.dateOfBirth}
-                      onChange={(e) => handleFieldChange('dateOfBirth', e.target.value)}
-                      className="profile-input editing"
-                    />
-                  ) : (
-                    <span className="profile-value">
-                      {profileData.dateOfBirth ?
-                        new Date(profileData.dateOfBirth).toLocaleDateString() :
-                        'Not set'}
-                    </span>
-                  )}
-                  <div className="profile-actions">
-                    {editMode.dateOfBirth ? (
-                      <>
-                        <button
-                          className="profile-btn save"
-                          onClick={() => handleSaveField('dateOfBirth')}
-                        >
-                          ✓
-                        </button>
-                        <button
-                          className="profile-btn cancel"
-                          onClick={() => handleCancelEdit('dateOfBirth')}
-                        >
-                          ✕
-                        </button>
-                      </>
-                    ) : (
-                      <button
-                        className="profile-btn edit"
-                        onClick={() => handleEditToggle('dateOfBirth')}
-                      >
-                        ✏️
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-              {/* Birth Time */}
-              <div className="profile-field">
-                <label className="profile-label">
-                  <span className="field-icon">🕐</span>
-                  Birth Time
-                </label>
-                <div className="profile-input-group">
-                  {editMode.birthTime ? (
-                    <input
-                      type="time"
-                      value={profileData.birthTime}
-                      onChange={(e) => handleFieldChange('birthTime', e.target.value)}
-                      className="profile-input editing"
-                    />
-                  ) : (
-                    <span className="profile-value">
-                      {profileData.birthTime || 'Not set'}
-                    </span>
-                  )}
-                  <div className="profile-actions">
-                    {editMode.birthTime ? (
-                      <>
-                        <button
-                          className="profile-btn save"
-                          onClick={() => handleSaveField('birthTime')}
-                        >
-                          ✓
-                        </button>
-                        <button
-                          className="profile-btn cancel"
-                          onClick={() => handleCancelEdit('birthTime')}
-                        >
-                          ✕
-                        </button>
-                      </>
-                    ) : (
-                      <button
-                        className="profile-btn edit"
-                        onClick={() => handleEditToggle('birthTime')}
-                      >
-                        ✏️
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-              {/* Country */}
-              <div className="profile-field">
-                <label className="profile-label">
-                  <span className="field-icon">🌍</span>
-                  Country
-                </label>
-                <div className="profile-input-group">
-                  {editMode.country ? (
-                    <input
-                      type="text"
-                      value={profileData.country}
-                      onChange={(e) => handleFieldChange('country', e.target.value)}
-                      className="profile-input editing"
-                      placeholder="Enter your country"
-                    />
-                  ) : (
-                    <span className="profile-value">
-                      {profileData.country || 'Not set'}
-                    </span>
-                  )}
-                  <div className="profile-actions">
-                    {editMode.country ? (
-                      <>
-                        <button
-                          className="profile-btn save"
-                          onClick={() => handleSaveField('country')}
-                        >
-                          ✓
-                        </button>
-                        <button
-                          className="profile-btn cancel"
-                          onClick={() => handleCancelEdit('country')}
-                        >
-                          ✕
-                        </button>
-                      </>
-                    ) : (
-                      <button
-                        className="profile-btn edit"
-                        onClick={() => handleEditToggle('country')}
-                      >
-                        ✏️
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-              {/* Birth Place */}
-              <div className="profile-field">
-                <label className="profile-label">
-                  <span className="field-icon">📍</span>
-                  Birth Place
-                </label>
-                <div className="profile-input-group">
-                  {editMode.birthPlace ? (
-                    <input
-                      type="text"
-                      value={profileData.birthPlace}
-                      onChange={(e) => handleFieldChange('birthPlace', e.target.value)}
-                      className="profile-input editing"
-                      placeholder="Enter your birth place"
-                    />
-                  ) : (
-                    <span className="profile-value">
-                      {profileData.birthPlace || 'Not set'}
-                    </span>
-                  )}
-                  <div className="profile-actions">
-                    {editMode.birthPlace ? (
-                      <>
-                        <button
-                          className="profile-btn save"
-                          onClick={() => handleSaveField('birthPlace')}
-                        >
-                          ✓
-                        </button>
-                        <button
-                          className="profile-btn cancel"
-                          onClick={() => handleCancelEdit('birthPlace')}
-                        >
-                          ✕
-                        </button>
-                      </>
-                    ) : (
-                      <button
-                        className="profile-btn edit"
-                        onClick={() => handleEditToggle('birthPlace')}
-                      >
-                        ✏️
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+  
+
 
       <header className="app-header">
         <div className="header-left">

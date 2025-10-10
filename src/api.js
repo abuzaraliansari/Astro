@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // ✅ STRICT: Force local backend only - NO direct API calls
-const BACKEND_URL = process.env.REACT_APP_BACKEND || 'https://babralauatapi-d9abe9h8frescchd.centralindia-01.azurewebsites.net';
+const BACKEND_URL = process.env.REACT_APP_BACKEND || 'http://localhost:4000';
 
 console.log('🔧 API Configuration:', {
   backendUrl: BACKEND_URL,
@@ -190,9 +190,38 @@ export const getUserPreferences = (userId) =>
 
 
 
+// Update user profile
+export const updateUserProfile = async (userId, profileData) => {
+  try {
+    console.log('📤 Updating user profile:', userId, profileData);
+    
+    const response = await api.put(`/astro/profile/${userId}`, profileData);
+    
+    console.log('✅ Profile updated:', response.data);
+    return response;
+  } catch (error) {
+    console.error('❌ Profile update error:', error);
+    throw error;
+  }
+};
+
+// Get user profile
+export const getUserProfile = async (userId) => {
+  try {
+    console.log('📥 Fetching user profile:', userId);
+    
+    const response = await api.get(`/astro/profile/${userId}`);
+    
+    console.log('✅ Profile fetched:', response.data);
+    return response;
+  } catch (error) {
+    console.error('❌ Profile fetch error:', error);
+    throw error;
+  }
+};
 
 
-export const getUserProfile = (userId) => api.get(`/astro/profile/${userId}`);
+//export const getUserProfile = (userId) => api.get(`/astro/profile/${userId}`);
 export const deductCredits = (userId, amount, reason = 'Question asked') =>
   api.post(`/astro/credits/${userId}/deduct`, { amount, reason });
 export const addCredits = (userId, amount, reason = 'Credits purchased', packageInfo = null) =>

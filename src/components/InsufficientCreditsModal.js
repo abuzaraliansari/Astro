@@ -90,10 +90,7 @@ function InsufficientCreditsModal({ isOpen, onClose, requiredCredits, currentCre
           color: 'rgba(255, 255, 255, 0.8)'
         }}>
           <div style={{ marginBottom: '5px' }}>
-            🔮 First question: <strong>10 credits</strong>
-          </div>
-          <div>
-            💬 Follow-up questions: <strong>5 credits each</strong>
+            🔮 Each question costs <strong>10 credits</strong> for Quick Answers and <strong>15 credits</strong> for Detailed Answers.
           </div>
         </div>
 

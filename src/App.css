@@ -2821,10 +2821,6 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   cursor: not-allowed;
 }
 
-.loading-spinner {
-  animation: spin 1s linear infinite;
-}
-
 .kundli-result {
   text-align: center;
 }
@@ -3577,7 +3573,6 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   box-shadow: 0 10px 30px rgba(220, 20, 60, 0.6);
 }
 
-
 /* ========================================
    ✅ DATE SELECTOR SECTION - DARK THEME
    ======================================== */
@@ -3676,8 +3671,13 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 }
 
 @keyframes bounce {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-5px); }
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
 }
 
 .custom-date-text {
@@ -3870,7 +3870,8 @@ input[type="time"]::-webkit-calendar-picker-indicator {
     font-size: 22px;
   }
 
-  .date-day, .date-month {
+  .date-day,
+  .date-month {
     font-size: 11px;
   }
 
@@ -3908,7 +3909,6 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   }
 }
 
-
 /* ✅ Calendar Overlay */
 .custom-calendar-overlay {
   position: fixed;
@@ -3925,8 +3925,12 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 /* ✅ Calendar Container (Dark Theme like image) */
@@ -4115,8 +4119,6 @@ input[type="time"]::-webkit-calendar-picker-indicator {
     gap: 2px;
   }
 }
-
-
 
 /* ================================
    RESPONSIVE DESIGN
@@ -4606,10 +4608,6 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 .generate-btn:disabled {
   opacity: 0.7;
   cursor: not-allowed;
-}
-
-.loading-spinner {
-  animation: spin 1s linear infinite;
 }
 
 .kundli-result {
@@ -5727,8 +5725,6 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   text-transform: uppercase;
 }
 
-
-
 /* Enhanced Slot Button Types */
 .slot-btn.full {
   background: rgba(0, 255, 0, 0.1);
@@ -6376,15 +6372,6 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   padding: 60px 20px;
   gap: 16px;
   width: 100%;
-}
-
-.loading-spinner {
-  width: 50px;
-  height: 50px;
-  border: 4px solid rgba(255, 215, 0, 0.2);
-  border-top-color: #ffd700;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
 }
 
 @keyframes spin {
@@ -8046,7 +8033,7 @@ select.profile-input option {
 
 .toggle-icon {
   font-size: 16px;
-  animation: bounce 2s infinite;
+  margin-bottom: 4px;
 }
 
 /* ✅ CLEAR CHAT BUTTON */
@@ -8135,8 +8122,6 @@ select.profile-input option {
   align-items: center;
   justify-content: space-between;
 }
-
-
 
 /* ✅ CREDIT INFO BAR */
 .credit-info-bar {
@@ -8550,10 +8535,15 @@ select.profile-input option {
 }
 
 @media (max-width: 899px) {
-.chat-header{
-  justify-content: end;
+  .chat-header {
+    justify-content: end;
+  }
 }
 
+@media (max-width: 450px) {
+  .chat-header {
+    justify-content: center;
+  }
 }
 
 /* ================================
@@ -8768,11 +8758,10 @@ select.profile-input option {
 .credit-packages-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 25px;
   margin-bottom: 25px;
+  margin-top: 30px;
   max-width: 1200px;
   margin-left: auto;
-  margin-right: auto;
 }
 
 /* ✅ ENHANCED PACKAGE CARDS */
@@ -8818,7 +8807,6 @@ select.profile-input option {
   border-color: #ffd700 !important;
   box-shadow: 0 0 30px rgba(50, 205, 50, 0.5) !important;
   transform: scale(1.05) !important;
-  margin: 2rem 1rem;
 }
 
 /* ✅ HOVER EFFECTS */
@@ -8875,16 +8863,15 @@ select.profile-input option {
   position: absolute;
   top: 15px;
   right: 15px;
-  background: linear-gradient(45deg, #32cd32, #228b22);
-  color: white;
-  padding: 6px 10px;
-  border-radius: 15px;
-  font-size: 10px;
+  background: linear-gradient(45deg, #ffd700, #ffa500);
+  color: black;
+  padding: 3px 10px;
+  border-radius: 10px;
+  font-size: 16px;
   font-weight: bold;
   display: flex;
   align-items: center;
   gap: 4px;
-  animation: selectedPulse 1.5s ease-in-out infinite;
 }
 
 @keyframes selectedPulse {
@@ -9018,30 +9005,36 @@ select.profile-input option {
 @media (min-width: 1200px) {
   .credit-packages-grid {
     grid-template-columns: repeat(4, 1fr);
-    gap: 30px;
+    gap: 50px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
   }
 }
 
 @media (max-width: 1199px) and (min-width: 900px) {
   .credit-packages-grid {
     grid-template-columns: repeat(3, 1fr);
-    gap: 30px;
+    gap: 50px;
+    display: grid;
+    justify-content: center;
+    align-items: center;
   }
 }
 
 @media (max-width: 899px) and (min-width: 600px) {
   .credit-packages-grid {
     grid-template-columns: repeat(2, 1fr);
-    gap: 30px;
-    max-width: 560px;
+    gap: 50px;
   }
 }
 
 @media (max-width: 599px) {
   .credit-packages-grid {
     grid-template-columns: 1fr;
-    gap: 20px;
-    max-width: 330px;
+    gap: 40px;
+    max-width: 270px;
+    margin-right: auto;
   }
 
   .main-purchase-btn {
@@ -10827,10 +10820,6 @@ select.profile-input option {
   transform: none !important;
 }
 
-.loading-spinner {
-  animation: spin 1s linear infinite;
-}
-
 @keyframes spin {
   from {
     transform: rotate(0deg);
@@ -11086,33 +11075,45 @@ select.profile-input option {
 
 /* Animated Stars Background (matching Auth page) */
 .refer-page::before {
-  content: '✨';
+  content: "✨";
   position: absolute;
   top: 10%;
   left: 15%;
   font-size: 2rem;
   opacity: 0.6;
-  animation: twinkle 3s ease-in-out infinite;
+  animation: twinkle 5s ease-in-out infinite;
 }
 
 .refer-page::after {
-  content: '🌙';
+  content: "🌙";
   position: absolute;
   top: 15%;
   right: 10%;
   font-size: 2.5rem;
   opacity: 0.7;
-  animation: float 6s ease-in-out infinite;
+  animation: float 5s ease-in-out infinite;
 }
 
 @keyframes twinkle {
-  0%, 100% { opacity: 0.3; transform: scale(1); }
-  50% { opacity: 0.8; transform: scale(1.2); }
+  0%,
+  100% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.2);
+  }
 }
 
 @keyframes float {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-20px); }
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
 }
 
 /* Main Container - Glass Morphism Effect */
@@ -11123,8 +11124,7 @@ select.profile-input option {
   backdrop-filter: blur(20px);
   border-radius: 24px;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 
-    0 8px 32px rgba(0, 0, 0, 0.4),
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4),
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
   padding: 1rem;
   animation: fadeInUp 0.6s ease-out;
@@ -11158,8 +11158,13 @@ select.profile-input option {
 }
 
 @keyframes bounce {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-15px); }
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-15px);
+  }
 }
 
 .refer-header h1 {
@@ -11207,27 +11212,35 @@ select.profile-input option {
   padding: 1.25rem;
   background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
   border-radius: 16px;
-  box-shadow: 
-    0 8px 24px rgba(139, 92, 246, 0.4),
+  box-shadow: 0 8px 24px rgba(139, 92, 246, 0.4),
     inset 0 1px 0 rgba(255, 255, 255, 0.2);
   position: relative;
   overflow: hidden;
 }
 
 .code-display-box::before {
-  content: '';
+  content: "";
   position: absolute;
   top: -50%;
   left: -50%;
   width: 200%;
   height: 200%;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.1) 0%,
+    transparent 70%
+  );
   animation: shimmer 3s ease-in-out infinite;
 }
 
 @keyframes shimmer {
-  0%, 100% { transform: translate(-25%, -25%); }
-  50% { transform: translate(25%, 25%); }
+  0%,
+  100% {
+    transform: translate(-25%, -25%);
+  }
+  50% {
+    transform: translate(25%, 25%);
+  }
 }
 
 .referral-code {
@@ -11262,7 +11275,9 @@ select.profile-input option {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
@@ -11293,7 +11308,7 @@ select.profile-input option {
   font-size: 0.9rem;
   color: rgba(255, 255, 255, 0.9);
   outline: none;
-  font-family: 'Courier New', monospace;
+  font-family: "Courier New", monospace;
 }
 
 .link-input::selection {
@@ -11306,7 +11321,11 @@ select.profile-input option {
 
 .copy-btn {
   padding: 0.875rem 1.75rem;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.05) 100%);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.15) 0%,
+    rgba(255, 255, 255, 0.05) 100%
+  );
   backdrop-filter: blur(10px);
   color: white;
   border: 1px solid rgba(255, 255, 255, 0.2);
@@ -11320,7 +11339,11 @@ select.profile-input option {
 }
 
 .copy-btn:hover {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.15) 100%);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.25) 0%,
+    rgba(255, 255, 255, 0.15) 100%
+  );
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
 }
@@ -11382,13 +11405,17 @@ select.profile-input option {
 }
 
 .share-btn::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, transparent 100%);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.2) 0%,
+    transparent 100%
+  );
   opacity: 0;
   transition: opacity 0.3s ease;
 }
@@ -11398,7 +11425,7 @@ select.profile-input option {
 }
 
 .share-btn.whatsapp {
-  background: linear-gradient(135deg, #25D366 0%, #128C7E 100%);
+  background: linear-gradient(135deg, #25d366 0%, #128c7e 100%);
 }
 
 .share-btn.whatsapp:hover {
@@ -11538,7 +11565,6 @@ select.profile-input option {
 
 .loading-spinner {
   text-align: center;
-  padding: 4rem 2rem;
 }
 
 .spinner {
@@ -11549,11 +11575,6 @@ select.profile-input option {
   border-radius: 50%;
   margin: 0 auto 1.5rem;
   animation: spin 0.8s linear infinite;
-}
-
-.loading-spinner p {
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 1.05rem;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
@@ -11796,65 +11817,73 @@ select.profile-input option {
 
 /* WhatsApp */
 .share-btn.whatsapp {
-  background: linear-gradient(135deg, #25D366, #128C7E);
+  background: linear-gradient(135deg, #25d366, #128c7e);
   color: white;
 }
 
 .share-btn.whatsapp:hover {
-  background: linear-gradient(135deg, #128C7E, #075E54);
+  background: linear-gradient(135deg, #128c7e, #075e54);
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(37, 211, 102, 0.4);
 }
 
 /* Facebook */
 .share-btn.facebook {
-  background: linear-gradient(135deg, #1877F2, #0C5EC7);
+  background: linear-gradient(135deg, #1877f2, #0c5ec7);
   color: white;
 }
 
 .share-btn.facebook:hover {
-  background: linear-gradient(135deg, #0C5EC7, #0A4FA3);
+  background: linear-gradient(135deg, #0c5ec7, #0a4fa3);
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(24, 119, 242, 0.4);
 }
 
 /* Instagram */
 .share-btn.instagram {
-  background: linear-gradient(135deg, #E1306C, #C13584, #833AB4, #5851DB);
+  background: linear-gradient(135deg, #e1306c, #c13584, #833ab4, #5851db);
   color: white;
 }
 
 .share-btn.instagram:hover {
-  background: linear-gradient(135deg, #C13584, #833AB4, #5851DB, #405DE6);
+  background: linear-gradient(135deg, #c13584, #833ab4, #5851db, #405de6);
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(225, 48, 108, 0.4);
 }
 
 .share-btn.instagram.copied {
-  background: linear-gradient(135deg, #4CAF50, #45a049);
+  background: linear-gradient(135deg, #4caf50, #45a049);
 }
 
 /* Twitter */
 .share-btn.twitter {
-  background: linear-gradient(135deg, #1DA1F2, #0C85D0);
+  background: linear-gradient(135deg, #1da1f2, #0c85d0);
   color: white;
 }
 
 .share-btn.twitter:hover {
-  background: linear-gradient(135deg, #0C85D0, #0A6BAF);
+  background: linear-gradient(135deg, #0c85d0, #0a6baf);
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(29, 161, 242, 0.4);
 }
 
 /* Copy Link */
 .share-btn.custom {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.1),
+    rgba(255, 255, 255, 0.05)
+  );
   color: white;
   border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .share-btn.custom:hover {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.1));
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.2),
+    rgba(255, 255, 255, 0.1)
+  );
   border-color: rgba(255, 255, 255, 0.3);
   transform: translateY(-2px);
 }
@@ -11880,8 +11909,6 @@ select.profile-input option {
   }
 }
 
-
-
 /* ========================================
    PHONE CODE DROPDOWN - SPECIALIZED STYLING
 ======================================== */
@@ -11900,7 +11927,7 @@ select.profile-input option {
   min-height: 52px;
   display: flex;
   align-items: center;
-  padding: 10px;
+  padding: 24px;
   border: 2px solid #e5e7eb;
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.1);
@@ -12142,11 +12169,11 @@ select.profile-input option {
     grid-template-columns: 1fr;
     gap: 20px;
   }
-  
+
   .phone-code-dropdown .country-dropdown-trigger {
     width: 100%;
   }
-  
+
   .phone-code-menu {
     max-height: 200px;
   }
@@ -12156,20 +12183,19 @@ select.profile-input option {
   .mobile-number-row {
     gap: 20px;
   }
-  
+
   .phone-code-menu {
     max-height: 150px;
   }
-  
+
   .phone-code-menu .country-dropdown-item {
     padding: 5px 12px;
   }
-  
+
   .phone-code-menu .country-name {
     font-size: 12px;
   }
 }
-
 
 /* Stats Loading Spinner */
 .stat-loading {
@@ -12273,5 +12299,40 @@ select.profile-input option {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ✅ Smooth Scroll Behavior */
+html {
+  scroll-behavior: smooth;
+}
+
+.call-container {
+  scroll-behavior: smooth;
+}
+
+/* ✅ Section spacing for better scroll positioning */
+.guru-profiles-section,
+.consultation-types,
+.date-selector,
+.time-slots,
+.booking-section {
+  scroll-margin-top: 100px; /* ✅ Increased from 20px to 100px */
+}
+
+/* ========================================
+   PROFILE PAGE STYLES
+   ======================================== */
+
+.profile-page-container {
+  padding-top: 2rem;
+  padding-bottom: 1rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 105vh;
+  overflow: hidden;
+  overflow-y: hidden;
 }

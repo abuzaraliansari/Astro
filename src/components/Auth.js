@@ -1180,7 +1180,7 @@ const Auth = ({ onLoginSuccess }) => {
                 size="large"
                 text={isSignup ? "signup_with" : "signin_with"}
                 shape="rectangular"
-                width="300"
+                width="relative"
                 disabled={isLoading}
               />
             )}
@@ -1233,8 +1233,6 @@ const Auth = ({ onLoginSuccess }) => {
                 Welcome, {googleUserInfo?.name}!
               </h2>
               <p className="modal-subtitle">
-                You are not registered in AstroGuru. Please register to complete your cosmic profile.
-                <br />
                 <strong>Complete Your Cosmic Profile</strong>
                 <br />
                 Please provide your birth details for accurate astrological readings and personalized Kundli.
@@ -1247,7 +1245,7 @@ const Auth = ({ onLoginSuccess }) => {
                 <div className="form-row name-religion-row">
                   {/* Full Name Field */}
                   <div className="form-field form-field-name">
-                    <label className="form-label">Full Name *</label>
+                    <label className="form-label">Full Name</label>
                     <input
                       type="text"
                       value={birthDetails.full_name}
@@ -1259,7 +1257,7 @@ const Auth = ({ onLoginSuccess }) => {
 
                   {/* ✅ NEW: Religion Dropdown */}
                   <div className="form-field form-field-religion">
-                    <label className="form-label">Religion *</label>
+                    <label className="form-label">Religion</label>
                     <div className="religion-dropdown-container">
                       <div
                         className={`religion-dropdown-trigger ${showReligionDropdown ? 'active' : ''}`}
@@ -1299,15 +1297,87 @@ const Auth = ({ onLoginSuccess }) => {
                     </div>
                   </div>
                 </div>
+                <h4 style={{ color: '#ffd700', fontStyle: 'bold'}}>Contact Details *
+                </h4>
+                {/* Mobile Number Row */}
+                <div className="form-row mobile-number-row">
+                  {/* Phone Code Selector */}
+                  <div className="form-field form-field-country-small">
+                    <label className="form-label">Country</label>
+                    <div className="country-dropdown-container country-compact phone-code-dropdown">
+                      <div
+                        className={`country-dropdown-trigger country-compact-size ${showPhoneCodeDropdown ? 'active' : ''}`}
+                        onClick={() => setShowPhoneCodeDropdown(!showPhoneCodeDropdown)}
+                      >
+                        <div className="country-dropdown-content country-compact-content">
+                          {/*<span className="country-flag">
+                              {phoneCountries.find(c => c.code === birthDetails.country_code_no)?.flag || '🇮🇳'}
+                            </span>*/}
+                          <span className="country-code">
+                            {birthDetails.country_code_no || '+91'}
+                          </span>
+                          <span className={`country-arrow ${showPhoneCodeDropdown ? 'up' : 'down'}`}>
+                            {showPhoneCodeDropdown ? '▲' : '▼'}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Phone Code Dropdown Menu */}
+                      {showPhoneCodeDropdown && (
+                        <div className="country-dropdown-menu country-compact-menu phone-code-menu">
+                          {loadingCountries ? (
+                            <div className="dropdown-loading">Loading countries...</div>
+                          ) : (
+                            phoneCountries.map((country) => (
+                              <div
+                                key={country.iso}
+                                className={`country-dropdown-item ${birthDetails.country_code_no === country.code ? 'selected' : ''}`}
+                                onClick={() => {
+                                  handleBirthDetailsChange('country_code_no', country.code);
+                                  setShowPhoneCodeDropdown(false);
+                                }}
+                              >
+                                {/*<span className="country-flag">{country.flag}</span>*/}
+                                <span className="country-code-small">({country.code})</span>
+                                {birthDetails.country_code_no === country.code && (
+                                  <span className="country-selected-icon">✓</span>
+                                )}
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Mobile Number Input */}
+                  <div className="form-field form-field-name">
+                    <label className="form-label">Mobile Number</label>
+                    <input
+                      type="tel"
+                      value={birthDetails.mobile_number || ''}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/[^0-9]/g, '');
+                        if (value.length <= 15) {
+                          handleBirthDetailsChange('mobile_number', value);
+                        }
+                      }}
+                      placeholder="Enter mobile number"
+                      className="form-input"
+                      maxLength="15"
+                    />
+                  </div>
+                </div>
 
 
+                <h4 style={{ color: '#ffd700', fontStyle: 'bold' }}>Birth Details *</h4>
                 {/* Date/Time/Location Fields */}
                 <div className="form-grid-optimized">
                   {/* Row 1: Date and Time */}
                   <div className="form-row">
                     {/* Date Picker */}
                     <div className="form-field form-field-half">
-                      <label className="form-label">Date of Birth *</label>
+                      <label className="form-label">Date of Birth</label>
                       <div className="mobile-date-picker">
                         <button
                           type="button"
@@ -1331,7 +1401,7 @@ const Auth = ({ onLoginSuccess }) => {
 
                     {/* Time Picker */}
                     <div className="form-field form-field-half">
-                      <label className="form-label">Birth Time *</label>
+                      <label className="form-label">Birth Time</label>
                       <div className="mobile-time-picker">
                         <button
                           type="button"
@@ -1356,76 +1426,6 @@ const Auth = ({ onLoginSuccess }) => {
                   </div>
 
 
-                  {/* Mobile Number Row */}
-                  <div className="form-row mobile-number-row">
-                    {/* Phone Code Selector */}
-                    <div className="form-field form-field-country-small">
-                      <label className="form-label">No. Code</label>
-                      <div className="country-dropdown-container country-compact phone-code-dropdown">
-                        <div
-                          className={`country-dropdown-trigger country-compact-size ${showPhoneCodeDropdown ? 'active' : ''}`}
-                          onClick={() => setShowPhoneCodeDropdown(!showPhoneCodeDropdown)}
-                        >
-                          <div className="country-dropdown-content country-compact-content">
-                            <span className="country-flag">
-                              {phoneCountries.find(c => c.code === birthDetails.country_code_no)?.flag || '🇮🇳'}
-                            </span>
-                            <span className="country-code">
-                              {birthDetails.country_code_no || '+91'}
-                            </span>
-                            <span className={`country-arrow ${showPhoneCodeDropdown ? 'up' : 'down'}`}>
-                              {showPhoneCodeDropdown ? '▲' : '▼'}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Phone Code Dropdown Menu */}
-                        {showPhoneCodeDropdown && (
-                          <div className="country-dropdown-menu country-compact-menu phone-code-menu">
-                            {loadingCountries ? (
-                              <div className="dropdown-loading">Loading countries...</div>
-                            ) : (
-                              phoneCountries.map((country) => (
-                                <div
-                                  key={country.iso}
-                                  className={`country-dropdown-item ${birthDetails.country_code_no === country.code ? 'selected' : ''}`}
-                                  onClick={() => {
-                                    handleBirthDetailsChange('country_code_no', country.code);
-                                    setShowPhoneCodeDropdown(false);
-                                  }}
-                                >
-                                  <span className="country-flag">{country.flag}</span>
-                                  <span className="country-code-small">({country.code})</span>
-                                  {birthDetails.country_code_no === country.code && (
-                                    <span className="country-selected-icon">✓</span>
-                                  )}
-                                </div>
-                              ))
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Mobile Number Input */}
-                    <div className="form-field form-field-name">
-                      <label className="form-label">Mobile Number</label>
-                      <input
-                        type="tel"
-                        value={birthDetails.mobile_number || ''}
-                        onChange={(e) => {
-                          const value = e.target.value.replace(/[^0-9]/g, '');
-                          if (value.length <= 15) {
-                            handleBirthDetailsChange('mobile_number', value);
-                          }
-                        }}
-                        placeholder="Enter mobile number"
-                        className="form-input"
-                        maxLength="15"
-                      />
-                    </div>
-                  </div>
-
 
 
 
@@ -1433,14 +1433,14 @@ const Auth = ({ onLoginSuccess }) => {
                   <div className="form-row country-place-row">
                     {/* Country Selector */}
                     <div className="form-field form-field-country-small">
-                      <label className="form-label">Country *</label>
+                      <label className="form-label">Country</label>
                       <div className="country-dropdown-container country-compact">
                         <div
                           className={`country-dropdown-trigger country-compact-size ${showCountryDropdown ? 'active' : ''}`}
                           onClick={toggleCountryDropdown}
                         >
                           <div className="country-dropdown-content country-compact-content">
-                            <span className="country-flag">{selectedCountry.flag}</span>
+                            {/* <span className="country-flag">{selectedCountry.flag}</span>*/}
                             <span className="country-code">{selectedCountry.code.toUpperCase()}</span>
                             <span className={`country-arrow ${showCountryDropdown ? 'up' : 'down'}`}>
                               {showCountryDropdown ? '▲' : '▼'}
@@ -1448,7 +1448,6 @@ const Auth = ({ onLoginSuccess }) => {
                           </div>
                         </div>
 
-                        {/* Country Dropdown Menu */}
                         {/* Country Dropdown Menu */}
                         {showCountryDropdown && (
                           <div className="country-dropdown-menu country-compact-menu">
@@ -1481,7 +1480,7 @@ const Auth = ({ onLoginSuccess }) => {
 
                     {/* Place Selector */}
                     <div className="form-field form-field-place-wide">
-                      <label className="form-label">Birth Place *</label>
+                      <label className="form-label">City</label>
                       <div className="place-dropdown-container place-wide">
                         <div
                           className={`place-dropdown-trigger place-wide-size ${showSuggestions ? 'active' : ''}`}

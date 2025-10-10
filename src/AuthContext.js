@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { getUserCredits, deductCredits as apiDeductCredits, addCredits as apiAddCredits, getUserPreferences } from './api';
+import { getUserCredits, deductCredits as apiDeductCredits, addCredits as apiAddCredits, getUserPreferences, getUserProfile  } from './api';
 
 const AuthContext = createContext();
 
@@ -361,6 +361,39 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // ✅ NEW: Refresh user profile data from database
+const refreshUser = async () => {
+  if (!user?.userId) {
+    console.log('⚠️ Cannot refresh user: No user ID');
+    return;
+  }
+
+  try {
+    console.log('🔄 Refreshing user profile for userId:', user.userId);
+    
+    const response = await getUserProfile(user.userId);
+    
+    if (response.data.success) {
+      const updatedUserData = {
+        ...user,
+        ...response.data.user,
+        // Keep existing fields that might not be in the response
+        userId: user.userId,
+        id: user.id
+      };
+      
+      setUser(updatedUserData);
+      localStorage.setItem('astroguru_user', JSON.stringify(updatedUserData));
+      
+      console.log('✅ User profile refreshed:', updatedUserData);
+      return updatedUserData;
+    }
+  } catch (error) {
+    console.error('❌ Failed to refresh user profile:', error);
+  }
+};
+
+
   const value = {
     user,
     setUser: login, // Enhanced login with database sync
@@ -373,6 +406,7 @@ export const AuthProvider = ({ children }) => {
     refreshCredits,
     hasEnoughCredits,
     getCreditCost,
+    refreshUser, // ✅ NEW: Refresh user profile data from database
     
     // ✅ NEW: Religion-specific helper functions
     getReligionGreeting,

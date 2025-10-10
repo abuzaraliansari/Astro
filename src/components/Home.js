@@ -65,7 +65,7 @@ function Home() {
 
       {/* Additional Services  */}
       <div className="credit-packages-grid"
-       style={{display: 'grid',justifyContent: 'center', alignItems: 'center',marginTop: '20px', marginBottom: '30%', marginLeft:'40%', marginRight:'40%',gap: '3rem',}}>
+       style={{display: 'flex',justifyContent: 'center', alignItems: 'center',marginTop: '20px',marginLeft:'auto', marginRight:'auto',gap: '3rem',}}>
        {/* <button className="service-card" onClick={handleHoroscope}>
           <div className="service-icon">📊</div>
           <div className="service-content">

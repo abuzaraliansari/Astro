@@ -16,6 +16,7 @@ import Home from './components/Home';
 import MoonTracker from './components/MoonTracker';
 import BookPooja from './components/BookPooja';
 import Refer from './components/refer';
+import Profile from './components/ProfileModal';
 import './App.css';
 
 // Layout component adds Header and Footer conditionally and checks auth status to redirect unauthenticated users
@@ -68,6 +69,7 @@ function App() {
               <Route path="/moon" element={<ProtectedRoute><MoonTracker /></ProtectedRoute>} />
               <Route path="/pooja" element={<ProtectedRoute><BookPooja /></ProtectedRoute>} />
               <Route path="/refer" element={<ProtectedRoute><Refer /></ProtectedRoute>} />
+              <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
 
               {/* Catch All Route */}
               <Route path="*" element={<Navigate to="/home" replace />} />
