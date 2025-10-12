@@ -1,7 +1,15 @@
 import React, { useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation, Navigate, useNavigate } from 'react-router-dom';
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  useLocation,
+  Navigate,
+  useNavigate,
+} from 'react-router-dom';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { AuthProvider, useAuth } from './AuthContext';
+
 import Header from './components/Header';
 import Footer from './components/Footer';
 import Auth from './components/Auth';
@@ -22,10 +30,68 @@ import './App.css';
 
 const Layout = ({ children }) => {
   const location = useLocation();
-  const { user } = useAuth();
+  const navigate = useNavigate();
+  const { user, loading } = useAuth(); // ✅ Include loading flag from AuthContext
 
   const isAuthPage = location.pathname === '/';
   const isHomePage = location.pathname === '/home';
+
+  useEffect(() => {
+    if (loading) return; // ⏳ Wait until auth state is ready
+
+    if (!user) {
+      // ❌ Not logged in → only allow `/`
+      if (!isAuthPage) navigate('/', { replace: true });
+      return;
+    }
+
+    // ✅ Logged in
+    if (isAuthPage) {
+      navigate('/home', { replace: true });
+      return;
+    }
+
+    // 🧭 Valid route check
+    const validPaths = new Set([
+      '/home',
+      '/chat',
+      '/credits',
+      '/kundli',
+      '/horoscope',
+      '/submuhrat',
+      '/call',
+      '/moon',
+      '/pooja',
+      '/refer',
+      '/profile',
+    ]);
+
+    if (!validPaths.has(location.pathname)) {
+      navigate('/home', { replace: true });
+    }
+  }, [user, loading, location.pathname, navigate]);
+
+  // 🔒 Prevent back navigation on login page
+  useEffect(() => {
+    if (isAuthPage && !user?.full_name) {
+      window.history.pushState(null, '', window.location.href);
+
+      const handlePopState = (e) => {
+        if (window.location.pathname === '/') {
+          e.preventDefault();
+          window.history.pushState(null, '', window.location.href);
+        }
+      };
+
+      window.addEventListener('popstate', handlePopState);
+      return () => window.removeEventListener('popstate', handlePopState);
+    }
+  }, [isAuthPage, user]);
+
+  // 🕓 Show loading screen while auth is initializing
+  if (loading) {
+    return <div className="loading-screen">Loading...</div>;
+  }
 
   return (
     <div className="app-layout">
@@ -45,10 +111,10 @@ function App() {
         <Router>
           <Layout>
             <Routes>
-              {/* Auth Route - No Header/Footer */}
+              {/* Public Auth Route */}
               <Route path="/" element={<Auth />} />
 
-              {/* Protected Routes - With Header/Footer */}
+              {/* Protected Routes */}
               <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
               <Route path="/chat" element={<ProtectedRoute><ChatBot /></ProtectedRoute>} />
               <Route path="/credits" element={<ProtectedRoute><CreditPurchase /></ProtectedRoute>} />
@@ -56,14 +122,12 @@ function App() {
               <Route path="/horoscope" element={<ProtectedRoute><Horoscope /></ProtectedRoute>} />
               <Route path="/submuhrat" element={<ProtectedRoute><Submuhrat /></ProtectedRoute>} />
               <Route path="/call" element={<ProtectedRoute><CallGuru /></ProtectedRoute>} />
-
-              {/* Coming Soon Routes */}
               <Route path="/moon" element={<ProtectedRoute><MoonTracker /></ProtectedRoute>} />
               <Route path="/pooja" element={<ProtectedRoute><BookPooja /></ProtectedRoute>} />
               <Route path="/refer" element={<ProtectedRoute><Refer /></ProtectedRoute>} />
               <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
 
-              {/* Catch All Route */}
+              {/* Fallback route */}
               <Route path="*" element={<Navigate to="/home" replace />} />
             </Routes>
           </Layout>

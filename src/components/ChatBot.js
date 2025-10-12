@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { sendMessage, getAllPrompts, searchPlaces, saveChatMessage, getChatHistory, deleteChatHistory, getUserSettings, updateUserSettings, spendCredits, getUserCredits } from '../api';
+import { saveChatMessage, getChatHistory, deleteChatHistory, getQuickResponse, getUserSettings, updateUserSettings, spendCredits, searchPlaces } from '../api';
 import InsufficientCreditsModal from './InsufficientCreditsModal';
 import ReactMarkdown from 'react-markdown';
+import PROMPTS from '../config/prompts';
 
 function ChatBot() {
   const { user, deductCredits, getReligionGreeting, getReligionBlessing, refreshCredits } = useAuth();
@@ -11,19 +12,14 @@ function ChatBot() {
   const effectRan = useRef(false);
   const searchTimeoutRef = useRef(null);
   const placeInputRef = useRef(null);
+  
 
   const [hasInitialized, setHasInitialized] = useState(false);
-  const [prompts, setPrompts] = useState(null);
-  const [promptsLoading, setPromptsLoading] = useState(true);
-
-  // Enhanced state management with response length preference and language
   const [messages, setMessages] = useState([]);
   const [isTyping, setIsTyping] = useState(false);
   const [inputValue, setInputValue] = useState('');
-  const [isFirstQuestion, setIsFirstQuestion] = useState(true);
   const [showInsufficientModal, setShowInsufficientModal] = useState(false);
   const [requiredCredits, setRequiredCredits] = useState(0);
-  const [draftMessage, setDraftMessage] = useState('');
 
 
   const [selectedLanguage, setSelectedLanguage] = useState(
@@ -37,28 +33,6 @@ function ChatBot() {
     console.log('🎬 INITIAL responseType from DB:', savedType);
     return savedType;
   });
-
-  const [shortResponse, setShortResponse] = useState(true); // For response length toggle
-  const [promptsData, setPromptsData] = useState(null); // For prompts loaded from backend
-  const [messageType, setMessageType] = useState('NORMAL'); // For message type (if used)
-  // Helper for religion instruction (define as needed)
-  const religionInstruction = '';
-    const getPrompt = (path, fallback = '') => {
-    if (!prompts) return fallback;
-
-    const keys = path.split('.');
-    let result = prompts;
-
-    for (const key of keys) {
-      result = result?.[key];
-      if (result === undefined) return fallback;
-    }
-
-    return result || fallback;
-  };
-
-  // Helper for shortLimit (define as needed)
-  const shortLimit = shortResponse ? getPrompt('base.RESPONSE_SHORT', 'Keep response SHORT (30-50 words max). Simple language.') : getPrompt('base.RESPONSE_DETAILED', 'Provide detailed response.');
 
   const [showLanguageDropdown, setShowLanguageDropdown] = useState(false);
 
@@ -84,27 +58,6 @@ function ChatBot() {
     { key: 'HINDI', displayName: 'हिंदी (Hindi)' },
     { key: 'HINGLISH', displayName: 'Hinglish (Hindi + English)' }
   ];
-  const languageInstructions = {
-    ENGLISH: "Please respond in fluent English.",
-    HINDI: "[translate:कृपया हिंदी में उत्तर दें।]",
-    HINGLISH: "Please respond in friendly, engaging Hinglish using simple Hindi in Roman script and English mix. Avoid pure English."
-  };
-
-  const instructionsMap = {
-    'ENGLISH': 'Please respond in fluent English.',
-    'HINDI': '[translate:कृपया हिंदी में उत्तर दें।]',
-    'HINGLISH': 'Please respond in friendly, engaging Hinglish using simple Hindi words written in Latin script.'
-  };
-
-  const greetings = {
-    ENGLISH: "✨ Welcome! Your cosmic journey with Guru ji begins... ✨",
-    HINDI: "✨ स्वागत है! आपकी ज्योतिषीय यात्रा गुरु जी के साथ शुरू होती है... ✨",
-    HINGLISH: "✨ Namaste! Aapki cosmic journey Guru ji ke saath shuru hoti hai... ✨"
-  };
-
-
-  const languageInstruction = instructionsMap[selectedLanguage] || instructionsMap['ENGLISH'];
-
   // ✅ Birth Details State (same structure as Auth.js)
   const [birthDetails, setBirthDetails] = useState({
     full_name: '',
@@ -188,43 +141,11 @@ function ChatBot() {
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 100 }, (_, i) => currentYear - i);
 
-  // ✅ Load prompts from backend
-  const loadPrompts = async () => {
-    try {
-      setPromptsLoading(true);
-      console.log('🔄 Loading prompts from backend API...');
 
-      const response = await getAllPrompts();
-
-      if (response.data.success) {
-        setPrompts(response.data.data);
-        console.log('✅ Prompts loaded from backend API successfully');
-        console.log('📜 Prompts version:', response.data.data?.version || 'unknown');
-        console.log('🌍 Languages available:', Object.keys(response.data.data?.languages || {}).join(', '));
-        console.log('User language from settings:', user?.settings?.Language);
-        console.log('Dropdown selectedLanguage:', selectedLanguage);
-
-      } else {
-        console.error('❌ Failed to load prompts:', response.data.error);
-      }
-    } catch (error) {
-      console.error('❌ Error loading prompts from backend API:', error);
-    } finally {
-      setPromptsLoading(false);
-    }
-  };
-
-  // Move getPrompt and related helpers here
-
-  const getReligionPrompt = (religion, type = 'CONTEXT') => {
-    const religionKey = religion?.toUpperCase() || 'HINDU';
-    return getPrompt(`religion.${religionKey}.${type}`, getPrompt(`religion.HINDU.${type}`));
-  };
-
+  // ✅ UPDATED: Get random typing message from PROMPTS
   const getRandomTypingMessage = (religion) => {
     const religionKey = religion?.toUpperCase() || 'HINDU';
-    const messages = getPrompt(`typing.${religionKey}`, []);
-    console.log('🧘 Typing messages for', religionKey, messages);
+    const messages = PROMPTS.typing[religionKey] || PROMPTS.typing.HINDU;
 
     if (Array.isArray(messages) && messages.length > 0) {
       return messages[Math.floor(Math.random() * messages.length)];
@@ -233,20 +154,6 @@ function ChatBot() {
     return "🔮 Guru ji is consulting the cosmic energies... ✨";
   };
 
-
-  // ✅ Get response instruction based on type
-  const getResponseInstruction = () => {
-    switch (responseType) {
-      case 'QUICK':
-        return getPrompt('base.RESPONSE_QUICK', 'Keep response SHORT (30-50 words max).');
-      case 'NORMAL':
-        return getPrompt('base.RESPONSE_NORMAL', 'Keep response MODERATE (80-150 words).');
-      case 'DETAILED':
-        return getPrompt('base.RESPONSE_DETAILED', 'Provide detailed response (180-250 words).');
-      default:
-        return getPrompt('base.RESPONSE_NORMAL', 'Keep response MODERATE (80-150 words).');
-    }
-  };
 
   // ✅ NEW: Fetch latest preferred language from backend
   /*
@@ -278,23 +185,6 @@ function ChatBot() {
   // ✅ NEW: Fetch settings on component mount
   // ✅ NEW with proper dependency array
   // ✅ UPDATED: Fetch settings on component mount - ALWAYS RUN FIRST
-  useEffect(() => {
-    console.log('🔄 DEBUG: Settings useEffect triggered');
-    console.log('🔄 DEBUG: user?.userId:', user?.userId);
-    console.log('🔄 DEBUG: prompts loaded:', !!prompts);
-
-    // ✅ Run as soon as user is available, don't wait for hasInitialized
-    if (user?.userId && prompts) {
-      console.log('✅ Conditions met, calling fetchUserSettings IMMEDIATELY');
-      fetchUserSettings();
-    } else {
-      console.log('⚠️ Conditions not met:', {
-        hasUserId: !!user?.userId,
-        hasPrompts: !!prompts
-      });
-    }
-  }, [user?.userId, prompts]); // ✅ REMOVED hasInitialized dependency
-
 
 
 
@@ -303,74 +193,43 @@ function ChatBot() {
   // ✅ NEW: Update language setting in database
   // ✅ UPDATED: Update language setting with better flow
   const handleLanguageSelect = async (langKey) => {
-    console.log('═══════════════════════════════════════════════');
-    console.log('🔧 handleLanguageSelect called with:', langKey);
-    console.log('🔧 Current userSettings:', userSettings);
-    console.log('🔧 userSettings.SettingId:', userSettings?.SettingId);
-    console.log('═══════════════════════════════════════════════');
+    if (!userSettings?.SettingId) return;
 
-    if (!userSettings?.SettingId && !user?.settings?.settingId) {
-      console.error('❌ No settingId available anywhere!');
-      return;
-    }
-
-    const settingIdToUse = userSettings?.SettingId || user?.settings?.settingId;
-    console.log('🔧 Using settingId:', settingIdToUse);
-
-    // ✅ Optimistic UI update
     setSelectedLanguage(langKey);
     setShowLanguageDropdown(false);
 
     try {
-      console.log('⚙️ Updating language setting to:', langKey);
-      console.log('⚙️ With settingId:', settingIdToUse);
-
-      const response = await updateUserSettings(settingIdToUse, {
+      await updateUserSettings(userSettings.SettingId, {
         Language: langKey,
         ModifiedBy: user?.full_name || 'User'
       });
 
-      console.log('📥 Update response:', response.data);
-
-      if (response.data.message === 'Settings updated successfully') {
-        console.log('✅ Language setting updated successfully in database');
-
-        // ✅ Refresh settings from database
-        console.log('🔄 Refreshing settings from database...');
-        await fetchUserSettings();
-
-        console.log('✅ Settings refreshed, new language should be:', langKey);
-        console.log('═══════════════════════════════════════════════');
-      }
-    } catch (error) {
-      console.error('❌ Failed to update language setting:', error);
-      console.error('❌ Error details:', error.response?.data || error.message);
-
-      // Revert to previous setting
       await fetchUserSettings();
-      console.log('═══════════════════════════════════════════════');
+    } catch (error) {
+      console.error('❌ Failed to update language:', error);
+      await fetchUserSettings();
     }
   };
 
-  // ✅ NEW: Cycle through response types on click
- const toggleResponseType = async () => {
-  setResponseType((current) => {
-    let next;
-    if (current === 'QUICK') next = 'NORMAL';
-    else if (current === 'NORMAL') next = 'DETAILED';
-    else next = 'QUICK';
 
-    // Update in DB
-    if (userSettings?.SettingId || user?.settings?.settingId) {
-      const settingIdToUse = userSettings?.SettingId || user?.settings?.settingId;
-      updateUserSettings(settingIdToUse, {
-        MessageType: next,
-        ModifiedBy: user?.full_name || 'User'
-      });
-    }
-    return next;
-  });
-};
+  // ✅ NEW: Cycle through response types on click
+  const toggleResponseType = async () => {
+    setResponseType((current) => {
+      let next;
+      if (current === 'QUICK') next = 'NORMAL';
+      else if (current === 'NORMAL') next = 'DETAILED';
+      else next = 'QUICK';
+
+      if (userSettings?.SettingId) {
+        updateUserSettings(userSettings.SettingId, {
+          MessageType: next,
+          ModifiedBy: user?.full_name || 'User'
+        });
+      }
+      return next;
+    });
+  };
+
 
 
 
@@ -715,149 +574,55 @@ function ChatBot() {
 
 
 
-  const handleInputWithSuggestions = (e) => {
-    const value = e.target.value;
-    setInputValue(value);
-
-    if (value.length > 1) {
-      const matches = allSuggestions
-        .filter(q => q.toLowerCase().includes(value.toLowerCase()))
-      // only top 3
-      setFilteredSuggestions(matches);
-    } else {
-      setFilteredSuggestions([]);
+  // Load settings on mount
+  useEffect(() => {
+    if (user?.userId) {
+      fetchUserSettings();
     }
-  };
+  }, [user?.userId]);
 
+  // Initialize chat history or generate horoscope
+// Track if initialization is in progress
+const isInitializing = useRef(false);
 
-
-
-
-  // ✅ NEW: Get language instruction from backend
-  const getLanguageInstruction = (languageKey) => {
-    const instruction = getPrompt(`languages.${languageKey}.INSTRUCTION`, getPrompt('languages.ENGLISH.INSTRUCTION', 'Respond in clear English only.'));
-    console.log(`🌍 Language instruction for ${languageKey}:`, instruction);
-    return instruction;
-  };
-
-  // ✅ NEW: Get language display name
-  const getLanguageDisplayName = (languageKey) => {
-    return getPrompt(`languages.${languageKey}.DISPLAY_NAME`, languageKey);
-  };
-
-  // ✅ NEW: Get available languages from backend
-  const getAvailableLanguages = () => {
-    const languages = getPrompt('languages', {});
-    return Object.keys(languages).map(key => ({
-      key,
-      displayName: languages[key]?.DISPLAY_NAME || key
-    }));
-  };
-
-  // ✅ NEW: Fetch user settings from database
-  // ✅ NEW: Fetch user settings from database with DEBUG LOGS
-  // ✅ UPDATED: Fetch user settings from database with comprehensive logging
-  const fetchUserSettings = async () => {
-    console.log('═══════════════════════════════════════════════');
-    console.log('🔍 DEBUG: fetchUserSettings START');
-    console.log('🔍 DEBUG: user object:', user);
-    console.log('🔍 DEBUG: user.userId:', user?.userId);
-    console.log('═══════════════════════════════════════════════');
-
-    if (!user?.userId) {
-      console.log('⚠️ No userId available for fetching settings');
-      console.log('⚠️ DEBUG: user.settings from login:', user?.settings);
-
-      // Fallback to user.settings from login if available
-      if (user?.settings) {
-        console.log('✅ Using settings from login response');
-        const settings = user.settings;
-        setUserSettings(settings);
-        setSelectedLanguage(settings.Language || 'ENGLISH');
-        setShortResponse(settings.MessageType === 'SHORT_LIMIT');
-
-        console.log('✅ Fallback settings applied:', {
-          language: settings.Language,
-          messageType: settings.MessageType,
-          shortResponse: settings.MessageType === 'SHORT_LIMIT'
-        });
-      } else {
-        console.log('⚠️ No settings available, using defaults');
-        setSelectedLanguage('ENGLISH');
-        setShortResponse(true);
+// Initialize chat history or generate horoscope
+useEffect(() => {
+  if (user?.userId && userSettings && !hasInitialized && !isInitializing.current) {
+    const initialize = async () => {
+      // ✅ Set flag immediately to prevent double execution
+      isInitializing.current = true;
+      
+      try {
+        const hasHistory = await loadChatHistory();
+        
+        if (!hasHistory) {
+          await generateFreeHoroscope();
+        }
+        
+        setHasInitialized(true);
+      } catch (error) {
+        console.error('❌ Initialization error:', error);
+        isInitializing.current = false; // Reset on error
       }
-      return;
-    }
+    };
+    
+    initialize();
+  }
+}, [user?.userId, userSettings, hasInitialized]);
 
-    try {
-      console.log('⚙️ FETCHING user settings from database for userId:', user.userId);
-      const response = await getUserSettings(user.userId);
 
-      console.log('📥 DEBUG: API response:', response);
-      console.log('📥 DEBUG: API response.data:', response.data);
-
-      if (response.data) {
-        const settings = response.data;
-
-        console.log('✅ User settings fetched from database:', settings);
-        console.log('📊 Settings breakdown:', {
-          SettingId: settings.SettingId,
-          Language: settings.Language,
-          MessageType: settings.MessageType,
-          IsActive: settings.IsActive
-        });
-
-        // ✅ Update all states in sequence with logging
-        console.log('🔧 Step 1: Updating userSettings state...');
-        setUserSettings(settings);
-
-        console.log('🔧 Step 2: Updating selectedLanguage to:', settings.Language || 'ENGLISH');
-        setSelectedLanguage(settings.Language || 'ENGLISH');
-
-        console.log('🔧 Step 3: Updating shortResponse to:', settings.MessageType === 'SHORT_LIMIT');
-        setShortResponse(settings.MessageType === 'SHORT_LIMIT');
-
-        // ✅ Force a re-render after state updates
-        setTimeout(() => {
-          console.log('🎯 VERIFICATION after state updates:');
-          console.log('🎯 selectedLanguage should be:', settings.Language);
-          console.log('🎯 shortResponse should be:', settings.MessageType === 'SHORT_LIMIT');
-        }, 100);
-
-        console.log('⚙️ Settings successfully applied to UI');
-        console.log('═══════════════════════════════════════════════');
-
-      } else {
-        console.error('❌ No data in response');
-        throw new Error('No settings data received');
+  // Close language dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      const languageDropdown = document.querySelector('.language-dropdown-container');
+      if (languageDropdown && !languageDropdown.contains(event.target)) {
+        setShowLanguageDropdown(false);
       }
-    } catch (error) {
-      console.error('❌ Failed to fetch user settings:', error);
-      console.error('❌ Error details:', error.response?.data || error.message);
+    };
 
-      // Fallback to defaults
-      console.log('⚠️ Falling back to defaults');
-      setSelectedLanguage('ENGLISH');
-      setShortResponse(true);
-
-      console.log('═══════════════════════════════════════════════');
-    }
-  };
-
-
-
-
-  const replaceTemplate = (template, replacements) => {
-    let result = template;
-    Object.keys(replacements).forEach(key => {
-      const placeholder = `{${key}}`;
-      result = result.replace(
-        new RegExp(placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'),
-        replacements[key] || ''
-      );
-    });
-    return result;
-  };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // ✅ VALIDATION FUNCTIONS (same as Auth.js)
   const validateBirthDetails = () => {
@@ -1161,62 +926,18 @@ function ChatBot() {
       setIsLoading(false);
     }
   };
-  /*
-    useEffect(() => {
-      if (user?.preferred_language && user.preferred_language !== selectedLanguage) {
-        setSelectedLanguage(user.preferred_language);
-      }
-    }, [user?.preferred_language]);
-  */
-  // ✅ Sync selectedLanguage when user.settings changes from login
-  useEffect(() => {
-    if (user?.settings?.Language && user.settings.Language !== selectedLanguage) {
-      console.log('🔄 Syncing language from user.settings:', user.settings.Language);
-      setSelectedLanguage(user.settings.Language);
-    }
-  }, [user?.settings?.Language]);
 
-  // Load temporary profile from session storage
-  useEffect(() => {
-    const savedTempProfile = sessionStorage.getItem('astroguru_temp_profile');
-    if (savedTempProfile) {
-      try {
-        const profile = JSON.parse(savedTempProfile);
-        setTempBirthProfile(profile);
-        console.log('🔄 Loaded temporary profile from session:', profile);
-      } catch (error) {
-        console.error('❌ Error loading temporary profile:', error);
-        sessionStorage.removeItem('astroguru_temp_profile');
-      }
-    }
-  }, []);
-
-  // ✅ Initialize prompts on component mount
-  useEffect(() => {
-    loadPrompts();
-  }, []);
-  /*
-    // ✅ Load language preference from localStorage
-    const loadLanguagePreference = () => {
-      if (!user?.id) return 'ENGLISH';
-  
-      const savedLanguage = localStorage.getItem(`astroguru_language_${user.id}`);
-      return savedLanguage || 'ENGLISH';
-    };
-  */
-  // ✅ UPDATED: Load chat history from database
   const loadChatHistory = async () => {
-    if (!user?.id) return [];
+    if (!user?.id) return false;
 
     try {
-      console.log('📜 Loading chat history from database for user:', user.id);
+      console.log('📜 Loading chat history...');
       const response = await getChatHistory(user.id);
 
-      if (response.data.success) {
+      if (response.data.success && response.data.data) {
         const groupedMessages = response.data.data;
-
-        // Flatten grouped messages into a single array for display
         const allMessages = [];
+
         Object.keys(groupedMessages).sort().forEach(dateKey => {
           groupedMessages[dateKey].forEach(msg => {
             allMessages.push({
@@ -1228,245 +949,78 @@ function ChatBot() {
           });
         });
 
-        console.log(`✅ Loaded ${allMessages.length} messages from database`);
-        return allMessages;
+        if (allMessages.length > 0) {
+          console.log(`✅ Loaded ${allMessages.length} messages`);
+          setMessages(allMessages);
+          return true; // Has history
+        }
+      }
+
+      return false; // No history
+    } catch (error) {
+      console.error('❌ Error loading chat history:', error);
+      return false;
+    }
+  };
+
+  const generateFreeHoroscope = async () => {
+    console.log('🔮 Generating free horoscope...');
+    setIsTyping(true);
+
+    try {
+      const birthProfile = {
+        name: user?.fullname || user?.givenname || 'User',
+        dob: user?.birthdate || 'unknown',
+        time: user?.birthtime || 'unknown',
+        timezone: user?.timezone || 'IST',
+        place: user?.birthplace || 'unknown',
+        latLong: user?.latitude && user?.longitude
+          ? `${user.latitude}, ${user.longitude}`
+          : 'unknown'
+      };
+
+      const messageSettings = {
+        questionType: 'general',
+        language: selectedLanguage,
+        maxResponseLength: 50
+      };
+
+      // ✅ Use API function instead of direct axios call
+      const response = await getQuickResponse(
+        PROMPTS.template.HOROSCOPE_PROMPT,  // ✅ Use correct path
+        birthProfile,
+        messageSettings
+      );
+
+      if (response.success) {
+        const greeting = PROMPTS.greetings[selectedLanguage] || PROMPTS.greetings.ENGLISH;
+        push({
+          message: `${greeting}\n\n${response.reply}`,
+          direction: 'incoming',
+          sender: 'assistant',
+          timestamp: new Date().toISOString()
+        });
       }
     } catch (error) {
-      console.error('❌ Error loading chat history from database:', error);
+      console.error('❌ Error generating horoscope:', error);
+      const greeting = PROMPTS.greetings[selectedLanguage] || PROMPTS.greetings.ENGLISH;
+      push({
+        message: greeting,
+        direction: 'incoming',
+        sender: 'assistant',
+        timestamp: new Date().toISOString()
+      });
+    } finally {
+      setIsTyping(false);
     }
-
-    return [];
   };
 
-  // Load first question status from localStorage
-  const loadFirstQuestionStatus = () => {
-    if (!user?.id) return true;
 
-    const savedStatus = localStorage.getItem(`astroguru_first_question_${user.id}`);
-    return savedStatus ? JSON.parse(savedStatus) : true;
-  };
-
-  // ✅ Load short response preference from localStorage
-  const loadResponsePreference = () => {
-    if (!user?.id) return true;
-
-    const savedPreference = localStorage.getItem(`astroguru_short_response_${user.id}`);
-    return savedPreference ? JSON.parse(savedPreference) : true;
-  };
-
-  // Load draft message from localStorage
-  const loadDraftMessage = () => {
-    if (!user?.id) return '';
-
-    const savedDraft = localStorage.getItem(`astroguru_draft_${user.id}`);
-    return savedDraft || '';
-  };
-
-  // ✅ Load free horoscope status from localStorage
-  const loadFreeHoroscopeStatus = () => {
-    if (!user?.id) return false;
-
-    const savedStatus = localStorage.getItem(`astroguru_free_horoscope_${user.id}`);
-    return savedStatus ? JSON.parse(savedStatus) : false;
-  };
-
-  // ✅ UPDATED: Initialize with database chat history
-  useEffect(() => {
-    if (user?.userId && !hasInitialized && prompts) {
-      const loadInitialData = async () => {
-        // ✅ STEP 1: Fetch settings FIRST
-        console.log('🔧 Step 1: Fetching user settings...');
-        await fetchUserSettings();
-
-        // ✅ STEP 2: Then load chat history
-        console.log('📚 Step 2: Loading chat history...');
-        const savedMessages = await loadChatHistory();
-        const savedFirstQuestion = savedMessages.length === 0;
-        const savedDraft = loadDraftMessage();
-        const savedResponsePreference = loadResponsePreference();
-
-        setMessages(savedMessages);
-        setIsFirstQuestion(savedFirstQuestion);
-        setDraftMessage(savedDraft);
-        setInputValue(savedDraft);
-        setShortResponse(savedResponsePreference);
-        setHasInitialized(true);
-
-        console.log('📚 Loaded chat data from DATABASE:', {
-          messagesCount: savedMessages.length,
-          isFirstQuestion: savedFirstQuestion,
-          hasDraft: !!savedDraft,
-          shortResponse: savedResponsePreference,
-          language: userSettings?.Language || selectedLanguage,
-          religion: user.religion,
-          promptsVersion: prompts?.version
-        });
-      };
-      loadInitialData();
-    }
-  }, [user?.userId, hasInitialized, prompts]);
-
-
-  // Save first question status whenever it changes
-  useEffect(() => {
+  const clearDraft = () => {
     if (user?.id) {
-      localStorage.setItem(`astroguru_first_question_${user.id}`, JSON.stringify(isFirstQuestion));
+      localStorage.removeItem(`astroguru_draft_${user.id}`);
     }
-  }, [isFirstQuestion, user?.id]);
-
-  // ✅ Save response preference whenever it changes
-  useEffect(() => {
-    if (user?.id) {
-      localStorage.setItem(`astroguru_short_response_${user.id}`, JSON.stringify(shortResponse));
-    }
-  }, [shortResponse, user?.id]);
-
-  // ✅ NEW: Save language preference whenever it changes
-
-  // Save draft message whenever input changes
-  useEffect(() => {
-    if (user?.id) {
-      setDraftMessage(inputValue);
-      localStorage.setItem(`astroguru_draft_${user.id}`, inputValue);
-    }
-  }, [inputValue, user?.id]);
-
-  // ✅ Enhanced auto-welcome trigger with one-time horoscope check
-  useEffect(() => {
-    if (
-      user?.id &&
-      hasInitialized &&
-      messages.length === 0 &&
-      effectRan.current === false &&
-      prompts
-    ) {
-      console.log('🎯 Running initial welcome with Backend Prompts');
-      effectRan.current = true;
-
-      setTimeout(() => {
-        showWelcomeAndHoroscope();
-      }, 100);
-    }
-  }, [user?.id, hasInitialized, messages.length, prompts]);
-
-  // ✅ Body class management for modals (same as Auth.js)
-  useEffect(() => {
-    if (showDatePicker || showTimePicker) {
-      document.body.classList.add('modal-open');
-    } else {
-      document.body.classList.remove('modal-open');
-    }
-    return () => document.body.classList.remove('modal-open');
-  }, [showDatePicker, showTimePicker]);
-
-  useEffect(() => {
-    const chatContainer = document.querySelector('.chatbot-container');
-    if (chatContainer) {
-      if (tempBirthProfile) {
-        chatContainer.classList.add('has-temp-profile');
-      } else {
-        chatContainer.classList.remove('has-temp-profile');
-      }
-    }
-  }, [tempBirthProfile]);
-
-  useEffect(() => {
-    if (showBirthDetailsPopup) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
-
-    // Cleanup on unmount
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
-  }, [showBirthDetailsPopup]);
-
-  // ✅ NEW: Close dropdowns when clicking outside (same as Auth.js)
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      const countryDropdown = document.querySelector('.country-dropdown-container');
-      const placeDropdown = document.querySelector('.place-dropdown-container');
-      const religionDropdown = document.querySelector('.religion-dropdown-container');
-      const languageDropdown = document.querySelector('.language-dropdown-container');
-
-      if (countryDropdown && !countryDropdown.contains(event.target)) {
-        setShowCountryDropdown(false);
-      }
-      if (placeDropdown && !placeDropdown.contains(event.target)) {
-        setShowSuggestions(false);
-      }
-      if (religionDropdown && !religionDropdown.contains(event.target)) {
-        setShowReligionDropdown(false);
-      }
-      if (languageDropdown && !languageDropdown.contains(event.target)) {
-        setShowLanguageDropdown(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      if (searchTimeoutRef.current) {
-        clearTimeout(searchTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!showSettings) return;
-
-    const handleClickOutside = (event) => {
-      const settingsEl = document.querySelector('.settings-row');
-      if (settingsEl && !settingsEl.contains(event.target)) {
-        setShowSettings(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    document.addEventListener('touchstart', handleClickOutside);
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('touchstart', handleClickOutside);
-    };
-  }, [showSettings]);
-
-  // ✅ Force UI update when settings change
-  // ✅ NEW: Force language dropdown to update when selectedLanguage changes
-  // Save settings when they change
-  // ✅ Save settings to DB when they change
-  useEffect(() => {
-    if (user?.id && promptsData) {
-      const saveSettings = async () => {
-        try {
-          console.log('💾 Saving settings to DB:', {
-            language: selectedLanguage,
-            messageType: messageType,
-            responseType: responseType
-          });
-
-          await updateUserSettings({
-            userId: user.id,
-            language: selectedLanguage,
-            messageType: messageType,
-            responseType: responseType
-          });
-
-          console.log('✅ Settings saved successfully');
-        } catch (error) {
-          console.error('❌ Error saving settings:', error);
-        }
-      };
-
-      // Debounce save by 500ms to avoid too many API calls
-      const timeoutId = setTimeout(saveSettings, 500);
-      return () => clearTimeout(timeoutId);
-    }
-  }, [selectedLanguage, messageType, responseType, user?.id]);
-
-
+  };
 
 
 
@@ -1479,7 +1033,7 @@ function ChatBot() {
 
         if (response.data.success) {
           setMessages([]);
-          setIsFirstQuestion(true);
+          //setIsFirstQuestion(true);
           setTempBirthProfile(null);
           sessionStorage.removeItem('astroguru_temp_profile');
           if (user?.id) {
@@ -1497,244 +1051,42 @@ function ChatBot() {
 
   const push = msg => setMessages(prev => [...prev, msg]);
 
+
+  // Fetch user settings from database
+  const fetchUserSettings = async () => {
+    if (!user?.userId) {
+      console.log('⚠️ No userId, using defaults');
+      return;
+    }
+
+    try {
+      console.log('⚙️ Fetching user settings for:', user.userId);
+      const response = await getUserSettings(user.userId);
+
+      if (response.data) {
+        const settings = response.data;
+        console.log('✅ Settings loaded:', settings);
+
+        setUserSettings(settings);
+        setSelectedLanguage(settings.Language || 'ENGLISH');
+        setResponseType(settings.MessageType || 'NORMAL');
+      }
+    } catch (error) {
+      console.error('❌ Failed to fetch settings:', error);
+      setSelectedLanguage('ENGLISH');
+      setResponseType('NORMAL');
+    }
+  };
+
   // ✅ UPDATED: Backend-based religion-specific Guru messages
   const getRandomGuruMessage = () => {
     const religion = tempBirthProfile?.religion || user?.religion || 'Hindu';
     return getRandomTypingMessage(religion);
   };
 
-  // ✅ UPDATED: Backend-based user profile context with temporary birth details
-  const getUserProfileContext = () => {
-    if (!prompts) return '';
-
-    const profile = tempBirthProfile || user;
-    const religion = profile?.religion || 'Hindu';
-    const guruBase = getPrompt('base.GURU_BASE', 'You are Guru ji, wise astrologer.');
-    const responseLength = shortResponse ?
-      getPrompt('base.RESPONSE_SHORT', 'Keep response SHORT (30-50 words max). Simple language.') :
-      getPrompt('base.RESPONSE_DETAILED', 'Provide detailed response.');
-
-
-
-    const religionContext = getReligionPrompt(religion);
-    const guruTone = getPrompt('base.GURU_TONE', 'Warm, caring tone.');
-
-    const languageInstruction = getLanguageInstruction(selectedLanguage);
-    const languageTemplate = replaceTemplate(
-      getPrompt('template.LANGUAGEINSTRUCTION', '**IMPORTANT:** {{languageInstruction}}'),
-      { languageInstruction }
-    );
-
-
-    const userProfile = replaceTemplate(
-      getPrompt('template.USER_PROFILE', 'User: {name}, {religion}, Born: {birthDate} at {birthTime} in {birthPlace}.'),
-      {
-        name: profile?.given_name || profile?.full_name?.split(' ')[0] || 'Beta',
-        religion: religion,
-        birthDate: profile?.birth_date || 'unknown',
-        birthTime: profile?.birth_time || 'unknown',
-        birthPlace: profile?.birth_place || 'unknown'
-      }
-    );
-
-    const profileType = tempBirthProfile ?
-      '\n\nNote: Using temporary birth profile provided by user for this session.' :
-      '\n\nNote: Using registered user profile.';
-
-    return `${guruBase} ${responseLength}\n\n${religionContext}\n\n${userProfile}${profileType}\n\n${guruTone}\n\n${languageTemplate}`;
-  };
-
-  // ✅ UPDATED: Enhanced welcome message with backend-based greeting
-  // ✅ UPDATED: Enhanced welcome message that WAITS for settings
-  const showWelcomeAndHoroscope = async () => {
-    console.log('═══════════════════════════════════════════════');
-    console.log('✨ showWelcomeAndHoroscope START');
-    console.log('✨ Current selectedLanguage:', selectedLanguage);
-    console.log('✨ Current userSettings:', userSettings);
-    console.log('✨ Current shortResponse:', shortResponse);
-    console.log('═══════════════════════════════════════════════');
-
-    // ✅ WAIT for settings to load if not already loaded
-    if (!userSettings && user?.userId) {
-      console.log('⏳ Settings not loaded yet, fetching now...');
-      await fetchUserSettings();
-
-      // ✅ Wait a bit for state to update
-      await new Promise(resolve => setTimeout(resolve, 200));
-
-      console.log('✅ Settings should be loaded now');
-      console.log('✅ selectedLanguage after fetch:', selectedLanguage);
-    }
-
-    const profile = tempBirthProfile || user;
-    const userName = profile?.full_name || profile?.given_name || profile?.name || 'seeker';
-    const religionGreeting = getReligionGreeting(profile?.religion);
-    const religionBlessing = getReligionBlessing(profile?.religion);
-
-    // Check if free horoscope already provided
-    const hasFreeHoroscope = loadFreeHoroscopeStatus();
-
-    if (hasFreeHoroscope) {
-      console.log('🔮 Free horoscope already provided to user, showing welcome only');
-
-      // ✅ Use CURRENT selectedLanguage from state (should be from DB now)
-      const currentLang = selectedLanguage || 'ENGLISH';
-      console.log('🌍 Using language for welcome:', currentLang);
-
-      const welcomeMessages = {
-        'ENGLISH': `Welcome, ${userName}! 🌌 Your personalized cosmic journey begins here with Astro AI – guided by wisdom, powered by technology.`,
-        'HINDI': `स्वागत है, ${userName} जी! 🌠 आपकी व्यक्तिगत ज्योतिषीय यात्रा अब Astro AI के साथ आरंभ होती है – ज्ञान और तकनीक का संगम।`,
-        'HINGLISH': `Namaste ${userName} Ji! 🌟 Aapki personalized cosmic journey ab shuru hoti hai Astro AI ke saath – jahaan technology milti hai Guru ji ke gyaan se.`
-      };
-
-      const welcomeMessage = welcomeMessages[currentLang] || welcomeMessages['ENGLISH'];
-
-      console.log('📤 Sending welcome message in', currentLang);
-
-      push({
-        message: welcomeMessage,
-        direction: 'incoming',
-        sender: 'assistant',
-        timestamp: new Date().toISOString()
-      });
-
-      console.log('═══════════════════════════════════════════════');
-      return;
-    }
-
-    // Show typing indicator for combined message
-    setIsTyping(true);
-
-    try {
-      // ✅ Use settings-based language and response length
-      const currentLang = selectedLanguage || 'ENGLISH';
-      const currentShortResponse = shortResponse;
-
-      console.log('🔮 Generating horoscope with settings:', {
-        language: currentLang,
-        shortResponse: currentShortResponse
-      });
-
-      // Prepare horoscope query
-      const religion = profile?.religion || 'Hindu';
-      const guruBase = getPrompt('base.GURU_BASE', 'You are Guru ji, wise astrologer.');
-
-      // ✅ Use current settings for response length
-      const responseLength = currentShortResponse
-        ? getPrompt('base.RESPONSE_SHORT', 'Keep response SHORT (30-50 words max). Simple language.')
-        : getPrompt('base.RESPONSE_DETAILED', 'Provide detailed response.');
-
-      const horoscopePrompt = getPrompt('template.HOROSCOPE_PROMPT', 'Provide today\'s horoscope in 25-30 words. Keep positive, actionable.');
-      const religionContext = getReligionPrompt(religion);
-
-      // ✅ Use current language setting
-      const languageInstruction = getLanguageInstruction(currentLang);
-
-      const languageTemplate = replaceTemplate(
-        getPrompt('template.LANGUAGE_INSTRUCTION', '**IMPORTANT:** {{languageInstruction}}'),
-        { languageInstruction }
-      );
-
-      const userInfo = replaceTemplate(
-        `User: {{name}}, {{religion}} religion. Birth: {{birthDate}}.`,
-        {
-          name: userName,
-          religion: religion,
-          birthDate: profile?.birth_date || 'unknown'
-        }
-      );
-
-      const horoscopeQuery = `${guruBase}\n${responseLength}\n${userInfo}\n${horoscopePrompt}\n${religionContext}\n${languageTemplate}`;
-
-      console.log(`🔮 Loading personalized horoscope for ${religion} devotee in ${currentLang} (FREE)`);
-      console.log('📤 Horoscope query:', horoscopeQuery);
-
-      // Get horoscope from API
-      const response = await sendMessage(horoscopeQuery);
-      console.log('📥 Horoscope API response:', response);
-
-      const horoscopeReply = response?.reply || response?.data?.reply || response?.message || 'The stars are aligning favorably for you today.';
-      console.log('✨ Horoscope reply extracted:', horoscopeReply);
-
-      // ✅ Language-specific welcome with horoscope using CURRENT language
-      const welcomeIntros = {
-        'ENGLISH': `Welcome, ${userName}! 🌌 Your personalized cosmic journey begins here with Astro AI. Today's cosmic guidance reveals:`,
-        'HINDI': `स्वागत है, ${userName} जी! 🌠 आपकी व्यक्तिगत ज्योतिषीय यात्रा अब Astro AI के साथ आरंभ होती है। आज का ज्योतिषीय मार्गदर्शन:`,
-        'HINGLISH': `Namaste ${userName} Ji! 🌟 Aapki personalized cosmic journey ab shuru hoti hai Astro AI ke saath. Aaj ka cosmic guidance:`
-      };
-
-      const welcomeIntro = welcomeIntros[currentLang] || welcomeIntros['ENGLISH'];
-
-      console.log('📤 Sending welcome with horoscope in', currentLang);
-
-      setTimeout(() => {
-        push({
-          message: `${welcomeIntro}\n\n${horoscopeReply}`,
-          direction: 'incoming',
-          sender: 'assistant',
-          timestamp: new Date().toISOString()
-        });
-
-        // Mark free horoscope as provided
-        if (user?.id) {
-          localStorage.setItem(`astroguru_free_horoscope_${user.id}`, JSON.stringify(true));
-          console.log('✅ Free horoscope marked as provided for user');
-        }
-
-        setIsTyping(false);
-      }, 1000);
-
-    } catch (err) {
-      console.error('Horoscope loading error:', err);
-
-      // ✅ Use current language for fallback too
-      const currentLang = selectedLanguage || 'ENGLISH';
-
-      const fallbackMessages = {
-        'ENGLISH': `Welcome, ${userName}! 🌌 Your personalized cosmic journey begins here with Astro AI. Today's cosmic guidance reveals:\n\nThe celestial energies are particularly favorable for you today. Your birth chart indicates strong planetary support for new beginnings and spiritual growth. 🙏`,
-        'HINDI': `स्वागत है, ${userName} जी! 🌠 आपकी व्यक्तिगत ज्योतिषीय यात्रा अब Astro AI के साथ आरंभ होती है। आज का ज्योतिषीय मार्गदर्शन:\n\nआज आपके लिए खगोलीय ऊर्जा विशेष रूप से अनुकूल है। आपकी जन्म कुंडली नई शुरुआत और आध्यात्मिक विकास के लिए मजबूत ग्रह समर्थन दर्शाती है। 🙏`,
-        'HINGLISH': `Namaste ${userName} Ji! 🌟 Aapki personalized cosmic journey ab shuru hoti hai Astro AI ke saath. Aaj ka cosmic guidance:\n\nAaj aapke liye celestial energies bahut favorable hain. Aapki birth chart naye beginnings aur spiritual growth ke liye strong planetary support dikhati hai. 🙏`
-      };
-
-      const fallbackMessage = fallbackMessages[currentLang] || fallbackMessages['ENGLISH'];
-
-      setTimeout(() => {
-        push({
-          message: fallbackMessage,
-          direction: 'incoming',
-          sender: 'assistant',
-          timestamp: new Date().toISOString()
-        });
-
-        if (user?.id) {
-          localStorage.setItem(`astroguru_free_horoscope_${user.id}`, JSON.stringify(true));
-          console.log('✅ Free horoscope marked as provided for user (fallback)');
-        }
-
-        setIsTyping(false);
-      }, 1000);
-    }
-
-    console.log('═══════════════════════════════════════════════');
-  };
-
-  // Clear draft when message is successfully sent
-  const clearDraft = () => {
-    if (user?.id) {
-      setDraftMessage('');
-      localStorage.removeItem(`astroguru_draft_${user.id}`);
-    }
-  };
-
-  // ✅ UPDATED: Handle send with database storage - SAVE ONLY USER MESSAGE
-  // ✅ UPDATED: Handle send with credit deduction based on message type
   async function handleSend() {
     if (!inputValue.trim()) return;
 
-    setFilteredSuggestions([]);
-    setShowSuggestions(false);
-
-    // ✅ Store the ORIGINAL user message (without prompts)
     const originalUserMessage = inputValue.trim();
 
     const userMessage = {
@@ -1745,182 +1097,113 @@ function ChatBot() {
     };
     push(userMessage);
 
+    // ✅ Use tempBirthProfile if exists, otherwise use user data
     const profile = tempBirthProfile || user;
-    const religion = profile?.religion || 'Hindu';
 
-    const baseContext = getUserProfileContext();
-    const questionTemplate = replaceTemplate(
-      getPrompt('template.QUESTION_TEMPLATE', 'Respond as Guru ji with {religion} context.'),
-      { religion: religion }
-    );
-    //const shortLimit = shortResponse ? getPrompt('template.SHORT_LIMIT', 'Max 40-50 words.') : '';
-    const responseInstruction = getResponseInstruction();
+    // ✅ Build profile with proper field names
+    const birthProfile = {
+      name: profile?.fullname || profile?.full_name || profile?.givenname || profile?.given_name || 'User',
+      dob: profile?.birthdate || profile?.birth_date || 'unknown',
+      time: profile?.birthtime || profile?.birth_time || 'unknown',
+      timezone: profile?.timezone || 'IST',
+      place: profile?.birthplace || profile?.birth_place || 'unknown',
+      latLong: profile?.latitude && profile?.longitude
+        ? `${profile.latitude}, ${profile.longitude}`
+        : 'unknown'
+    };
 
-    const systemPrompt = `
-  ${getPrompt('base.GURU_BASE', 'You are Guru ji, wise astrologer.')}
-  ${getPrompt('base.GURU_TONE', 'Warm, caring tone.')}
-  ${responseInstruction}
-  ${religionInstruction}
-  ${languageInstruction}
-`.trim();
+    console.log('👤 Using profile:', profile);
+    console.log('📦 Birth profile:', birthProfile);
 
-    // ✅ This is ONLY for AI processing - NOT for database
-    const fullMessageWithProfile = `${baseContext}\n\nQuestion: "I am ${religion}. ${originalUserMessage}"\n\n${questionTemplate}${shortResponse ? ` ${shortLimit}` : ''}`;
 
-    console.log(`🔮 Sending message with ${religion} context and ${selectedLanguage} language`);
-    console.log('👤 User original message:', originalUserMessage);
-    console.log('🤖 Full AI prompt:', fullMessageWithProfile);
-    if (tempBirthProfile) {
-      console.log('🎭 Using temporary birth profile:', tempBirthProfile.full_name);
-    }
+    // Build settings
+    const maxResponseLength = PROMPTS.responseLength[responseType]?.maxWords || 150;
+
+    const messageSettings = {
+      questionType: 'general',
+      language: selectedLanguage,
+      maxResponseLength: maxResponseLength
+    };
+
+    console.log('📤 Sending:', { originalUserMessage, birthProfile, messageSettings });
 
     setInputValue('');
-    clearDraft();
     setIsTyping(true);
 
     try {
-      // ═══════════════════════════════════════════════════════════════════════════
-      // 💸 STEP 1: DEDUCT CREDITS BASED ON MESSAGE TYPE
-      // ═══════════════════════════════════════════════════════════════════════════
+      // Check credits
+      // Check credits based on CURRENT responseType state
+      let spendTypeId, creditsRequired;
 
-      // Determine spend_type_id based on message type
-      let spendTypeId;
-      let creditsRequired;
-
-      if (userSettings?.MessageType === 'SHORT_LIMIT' || shortResponse) {
-        spendTypeId = 1; // Short message
-        creditsRequired = 10; // Assuming 1 credit for short
-      } else if (userSettings?.MessageType === 'DETAILED') {
-        spendTypeId = 2; // Detailed message
-        creditsRequired = 15; // Assuming 5 credits for detailed
+      if (responseType === 'QUICK') {
+        spendTypeId = 1;
+        creditsRequired = 10;
+      } else if (responseType === 'DETAILED') {
+        spendTypeId = 2;
+        creditsRequired = 15;
+      } else if (responseType === 'NORMAL') {
+        spendTypeId = 3;
+        creditsRequired = 20;
       } else {
-        spendTypeId = 3; // Medium message
-        creditsRequired = 20; // Assuming 3 credits for medium
+        // Default to NORMAL
+        spendTypeId = 3;
+        creditsRequired = 20;
       }
 
-      console.log('💳 Deducting credits:', {
-        userId: user.userId,
-        spendTypeId,
-        messageType: userSettings?.MessageType || (shortResponse ? 'SHORT_LIMIT' : 'DETAILED'),
-        creditsRequired
-      });
+      console.log(`💰 Credits check: responseType=${responseType}, spendTypeId=${spendTypeId}, required=${creditsRequired}`);
 
-      // Check if user has enough credits
+
       if (user.credits < creditsRequired) {
         setRequiredCredits(creditsRequired);
         setShowInsufficientModal(true);
         setIsTyping(false);
-        console.log('❌ Insufficient credits - need:', creditsRequired, 'have:', user.credits);
-
-        // Remove user message since we couldn't process it
         setMessages(prev => prev.slice(0, -1));
-        setInputValue(originalUserMessage); // Restore input
+        setInputValue(originalUserMessage);
         return;
       }
 
-      // ✅ Call spendCredits API
-      const spendResponse = await spendCredits(
-        user.userId,
-        spendTypeId,
-        `Chat question: ${originalUserMessage.substring(0, 50)}...`,
-        null
-      );
-
-      if (!spendResponse.data.success) {
-        throw new Error('Failed to deduct credits');
-      }
-
-      console.log('✅ Credits deducted successfully:', spendResponse.data);
-      console.log('💰 New balance:', spendResponse.data.balance.currentCredits);
-
-      // ═══════════════════════════════════════════════════════════════════════════
-      // 🔄 STEP 2: REFRESH USER CREDITS
-      // ═══════════════════════════════════════════════════════════════════════════
-
-      // Refresh credits in AuthContext
-      if (typeof refreshCredits === 'function') {
-        await refreshCredits();
-        console.log('✅ Credits refreshed in AuthContext');
-      } else {
-        console.warn('⚠️ refreshCredits function not available in AuthContext');
-      }
-
-      // ═══════════════════════════════════════════════════════════════════════════
-      // 💬 STEP 3: SEND MESSAGE AND GET AI RESPONSE
-      // ═══════════════════════════════════════════════════════════════════════════
-
-      console.log('💾 Saving message to database with AI response...');
-      const { data } = await saveChatMessage(
+      // Send message
+      const response = await saveChatMessage(
         user.id,
-        originalUserMessage,  // ✅ ORIGINAL user message for DB
-        fullMessageWithProfile  // ✅ FULL prompt for AI
+        originalUserMessage,
+        birthProfile,
+        messageSettings
       );
 
-      if (data.success) {
+      if (response.success) {
         push({
-          message: data.reply,
+          message: response.reply,
           direction: 'incoming',
           sender: 'assistant',
           timestamp: new Date().toISOString()
         });
-        console.log('✅ Message and response saved to database');
 
-        // Update first question status
-        setIsFirstQuestion(false);
-      } else {
-        throw new Error('Failed to save message');
+        // Deduct credits
+        await spendCredits(
+          user.userId,
+          spendTypeId,
+          `Chat: ${originalUserMessage.substring(0, 50)}`,
+          null
+        );
+
+        await refreshCredits();
       }
-
-    } catch (err) {
-      console.error('❌ Chat error:', err);
-
-      const userName = profile?.given_name || profile?.name?.split(' ')[0] || 'beta';
-      const religionBlessing = getReligionBlessing(profile?.religion);
-
-      const errorTemplate = getPrompt('template.ERROR_NETWORK', 'the cosmic connection seems disturbed at this moment. May {blessing} be with you, the divine energies are temporarily realigning. Please try again in a moment, my child. **Peace be with you...** 🙏✨');
-      const errorMessage = replaceTemplate(errorTemplate, { blessing: religionBlessing });
-
+    } catch (error) {
+      console.error('❌ Error:', error);
       push({
-        message: `Forgive me ${userName}, ${errorMessage}`,
+        message: 'Sorry, something went wrong. Please try again.',
         direction: 'incoming',
         sender: 'assistant',
         timestamp: new Date().toISOString()
       });
-
-      // Try to refund credits if message failed
-      try {
-        console.log('🔄 Attempting to refresh credits after error...');
-        if (typeof refreshCredits === 'function') {
-          await refreshCredits();
-        }
-      } catch (refreshErr) {
-        console.error('❌ Failed to refresh credits:', refreshErr);
-      }
-
     } finally {
       setIsTyping(false);
     }
   }
 
-
-
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault(); // ✅ Prevent default form submission
-      setFilteredSuggestions([]); // ✅ Clear suggestions
-      setShowSuggestions(false); // ✅ Hide suggestions box
-      handleSend();
-    }
-  };
-
-
   const handleGetCredits = () => {
     console.log('📍 Going to credits page, draft preserved:', inputValue);
     navigate('/credits');
-  };
-
-  const handleInputChange = (e) => {
-    setInputValue(e.target.value);
   };
 
   const handleCloseInsufficientModal = () => {
@@ -1928,92 +1211,7 @@ function ChatBot() {
     console.log('💬 Modal closed, draft preserved:', inputValue);
   };
 
-  // ✅ Toggle response length preference
-  // ✅ NEW: Update message type setting in database
-  // ✅ UPDATED: Toggle response length with better flow
-  const toggleResponseLength = async () => {
-    console.log('═══════════════════════════════════════════════');
-    console.log('⚡ toggleResponseLength called');
-    console.log('⚡ Current userSettings:', userSettings);
-    console.log('⚡ Current shortResponse:', shortResponse);
-    console.log('═══════════════════════════════════════════════');
-
-    if (!userSettings?.SettingId && !user?.settings?.settingId) {
-      console.error('❌ No settingId available anywhere!');
-      return;
-    }
-
-    const settingIdToUse = userSettings?.SettingId || user?.settings?.settingId;
-    console.log('⚡ Using settingId:', settingIdToUse);
-
-    const newShortResponse = !shortResponse;
-    const newMessageType = newShortResponse ? 'SHORT_LIMIT' : 'DETAILED';
-
-    console.log('⚡ Toggling from', shortResponse ? 'SHORT_LIMIT' : 'DETAILED', 'to', newMessageType);
-
-    // ✅ Optimistic UI update
-    setShortResponse(newShortResponse);
-
-    try {
-      console.log('⚙️ Updating message type setting to:', newMessageType);
-      console.log('⚙️ With settingId:', settingIdToUse);
-
-      const response = await updateUserSettings(settingIdToUse, {
-        MessageType: newMessageType,
-        ModifiedBy: user?.full_name || 'User'
-      });
-
-      console.log('📥 Update response:', response.data);
-
-      if (response.data.message === 'Settings updated successfully') {
-        console.log('✅ Message type setting updated successfully in database');
-
-        // ✅ Refresh settings from database
-        console.log('🔄 Refreshing settings from database...');
-        await fetchUserSettings();
-
-        console.log('✅ Settings refreshed, new message type should be:', newMessageType);
-        console.log('═══════════════════════════════════════════════');
-      }
-    } catch (error) {
-      console.error('❌ Failed to update message type setting:', error);
-      console.error('❌ Error details:', error.response?.data || error.message);
-
-      // Revert to previous setting
-      setShortResponse(!newShortResponse);
-      await fetchUserSettings();
-      console.log('═══════════════════════════════════════════════');
-    }
-  };
-
-
-
-
-  // ✅ NEW: Handle language selection
-
-
-  const handleFreeKundli = () => {
-    console.log('🔮 Free Kundli clicked for:', user?.full_name);
-  };
-
-  const handleBookPooja = () => {
-    console.log('📖 Book Pooja clicked for:', user?.full_name);
-  };
-
-  const handleMoonTracker = () => {
-    console.log('🌙 Moon Tracker clicked for:', user?.full_name);
-  };
-
   // ✅ Show loading if prompts are still loading
-  if (promptsLoading && !prompts) {
-    return (
-      <div className="chatbot-container">
-        <div className="loading-prompts">
-          <p>Loading cosmic wisdom...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="chatbot-container">
@@ -2032,9 +1230,8 @@ function ChatBot() {
       {/* Main Chat Area */}
       <div className="chat-area">
         <div className="chat-header">
-          {/*  <span>✨ {getReligionGreeting(tempBirthProfile?.religion || user?.religion)} {tempBirthProfile?.given_name || user?.full_name || user?.name || 'seeker'}! Your personalized cosmic journey with Guru ji begins... ✨</span>*/}
+          <span>{PROMPTS.greetings[selectedLanguage] || PROMPTS.greetings.ENGLISH}</span>
 
-          <span>{greetings[selectedLanguage]}</span>
           <div className="settings-container">
             <div className="settings-row">
               {showSettings && (
@@ -2152,18 +1349,6 @@ function ChatBot() {
           </div>
         </div>
         {/* ✅ Horizontal Inline Settings */}
-
-        {/* <div className="credit-info-bar">
-          {messages.length <= 2 ?
-            `🔮 Preparing your ${shortResponse ? 'quick' : 'detailed'} cosmic insights with ${(tempBirthProfile?.religion || user?.religion) || 'spiritual'} context in ${getLanguageDisplayName(selectedLanguage)}, ${tempBirthProfile?.given_name || user?.given_name || 'beta'}...` :
-            (isFirstQuestion ?
-              '🔮 First divine consultation costs 10 credits' :
-              '💬 Follow-up spiritual guidance costs 5 credits each'
-            )
-          }
-        </div>
-
-        Enhanced Messages Container with Markdown Support */}
         <div className="messages-container">
           {messages.map((msg, idx) => (
             <div key={idx} className={`message-wrapper ${msg.direction}`}>
@@ -2235,50 +1420,14 @@ function ChatBot() {
           )}
         </div>
 
-        {/* Enhanced Input Area 
-        <div className="input-area">
-          <input
-            type="text"
-            value={inputValue}
-            onChange={handleInputWithSuggestions}
-            onKeyPress={handleKeyPress}
-            placeholder="Your stars hold the answers ✨ Ask about life, career, love, health, or destiny – and get personalized guidance now!"
-            className="chat-input"
-          />
-          {filteredSuggestions.length > 0 && (
-            <div className="suggestion-box">
-              {filteredSuggestions.map((s, i) => (
-                <div
-                  key={i}
-                  className="suggestion-item"
-                  onClick={() => {
-                    setInputValue(s);
-                    setFilteredSuggestions([]);
-                  }}
-                >
-                  {s}
-                </div>
-              ))}
-            </div>
-          )}
-
-          <button
-            onClick={handleSend}
-            disabled={!inputValue.trim() || isTyping}
-            className={`send-button ${inputValue.trim() && !isTyping ? 'active' : 'inactive'}`}
-          >
-            {isTyping ? 'Send' : 'Send'}
-          </button>
-        </div>
-        */}
       </div>
       <div className="input-area">
         <input
           type="text"
           value={inputValue}
-          onChange={handleInputWithSuggestions}
-          onKeyPress={handleKeyPress}
-          placeholder="Your stars hold the answers ✨ Ask about life, career, love, health, or destiny – and get personalized guidance now!"
+          onChange={(e) => setInputValue(e.target.value)}
+          onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+          placeholder={PROMPTS.languages[selectedLanguage]?.PLACEHOLDER}
           className="chat-input"
         />
         {filteredSuggestions.length > 0 && (

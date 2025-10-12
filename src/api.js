@@ -181,13 +181,14 @@ export const updateUserSettings = async (settingId, updates) => {
   }
 };
 
+/*
 // Get preferred language
 export const updateUserPreferences = (userId, preferences) =>
   api.post(`/astro/user/preferences/${userId}`, preferences);
 
 export const getUserPreferences = (userId) =>
   api.get(`/astro/user/preferences/${userId}`);
-
+*/
 
 
 // Update user profile
@@ -234,38 +235,51 @@ export const getUserCredits = (userId) => api.get(`/astro/credits/${userId}`);
 
 // ✅ NEW: Chat History API Functions
 // ✅ UPDATED: Accept both user message and AI prompt
-export const saveChatMessage = async (userId, userMessage, aiPrompt) => {
+export const saveChatMessage = async (userId, userMessage, profile, settings) => {
   try {
-    console.log('💬 SAVING CHAT MESSAGE WITH HISTORY THROUGH BACKEND:', {
+    console.log('💬 SAVING CHAT MESSAGE:', {
       userId,
-      userMessageLength: userMessage?.length,
-      aiPromptLength: aiPrompt?.length
+      userMessageLength: userMessage.length,
+      profile,
+      settings
     });
 
-    // ✅ EXTENDED TIMEOUT: 150 seconds (2.5 minutes) for AI processing
     const response = await api.post('/astro/chat/save-message', {
       userId,
-      userMessage,  // ✅ Original user message for DB
-      aiPrompt      // ✅ Full prompt for AI
+      userMessage,
+      profile,
+      settings
     }, {
-      timeout: 30000  // 150 seconds = 2.5 minutes
+      timeout: 30000
     });
 
-    console.log('✅ CHAT MESSAGE SAVED:', {
-      success: response.data.success,
-      hasReply: !!response.data.reply,
-      timestamp: response.data.timestamp
-    });
-
-    return response;
+    return response.data;
   } catch (error) {
     console.error('❌ SAVE CHAT MESSAGE ERROR:', error);
-    if (error.code === 'ECONNREFUSED' || error.code === 'ERR_NETWORK') {
-      throw new Error('❌ Backend server is not running! Please start your API server.');
-    }
-    if (error.code === 'ECONNABORTED') {
-      throw new Error('⏱️ Request timeout - AI is taking longer than expected. Please try again.');
-    }
+    throw error;
+  }
+};
+
+// Get quick AI response WITHOUT saving to database
+export const getQuickResponse = async (userMessage, profile, settings) => {
+  try {
+    console.log('⚡ GETTING QUICK RESPONSE:', {
+      userMessageLength: userMessage.length,
+      profile,
+      settings
+    });
+
+    const response = await api.post('/astro/chat/quickResponse', {
+      userMessage,
+      profile,
+      settings
+    }, {
+      timeout: 30000
+    });
+
+    return response.data;
+  } catch (error) {
+    console.error('❌ QUICK RESPONSE ERROR:', error);
     throw error;
   }
 };
@@ -1182,6 +1196,7 @@ export default {
   addCredits,
   getCreditHistory,
   saveChatMessage,      // ✅ NEW
+  getQuickResponse,     // ✅ NEW
   getChatHistory,       // ✅ NEW
   deleteChatHistory,
   getAllPrompts,

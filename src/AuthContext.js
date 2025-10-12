@@ -28,7 +28,7 @@ export const AuthProvider = ({ children }) => {
           if (userData.userId) {
             try {
               // ✅ Load preferences using DATABASE userId
-              try {
+            /*  try {
                 const prefResponse = await getUserPreferences(userData.userId);
                 if (prefResponse?.data) {
                   const { preferred_language, country_code } = prefResponse.data;
@@ -40,7 +40,7 @@ export const AuthProvider = ({ children }) => {
                 console.warn('⚠️ Could not load preferences (404 - endpoint may not exist):', prefError.message);
                 // Continue with defaults
               }
-
+*/
               // ✅ Load credits from credit_balance_summary
               const creditsResponse = await getUserCredits(userData.userId);
               if (creditsResponse?.data?.success) {
@@ -83,7 +83,7 @@ export const AuthProvider = ({ children }) => {
       try {
         console.log('📊 Fetching user data for userId:', userData.userId);
 
-        // ✅ Load preferences using DATABASE userId
+       /* // ✅ Load preferences using DATABASE userId
         try {
           const prefResponse = await getUserPreferences(userData.userId);
           if (prefResponse?.data?.preferred_language) {
@@ -94,7 +94,7 @@ export const AuthProvider = ({ children }) => {
           console.warn('⚠️ Could not load preferences (404 - endpoint may not exist):', prefError.message);
           // Continue with default language
         }
-
+*/
         // ✅ Load credits from credit_balance_summary using DATABASE userId
         const creditsResponse = await getUserCredits(userData.userId);
         if (creditsResponse?.data?.success) {
