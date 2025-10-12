@@ -1,15 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { sendMessage, getAllPrompts, searchPlaces, saveChatMessage, getChatHistory, deleteChatHistory, getUserSettings, updateUserSettings,spendCredits,getUserCredits } from '../api';
+import { sendMessage, getAllPrompts, searchPlaces, saveChatMessage, getChatHistory, deleteChatHistory, getUserSettings, updateUserSettings, spendCredits, getUserCredits } from '../api';
 import InsufficientCreditsModal from './InsufficientCreditsModal';
 import ReactMarkdown from 'react-markdown';
 
 function ChatBot() {
   const { user, deductCredits, getReligionGreeting, getReligionBlessing, refreshCredits } = useAuth();
-  
   const navigate = useNavigate();
-
   const effectRan = useRef(false);
   const searchTimeoutRef = useRef(null);
   const placeInputRef = useRef(null);
@@ -33,16 +31,34 @@ function ChatBot() {
   );
   const [userSettings, setUserSettings] = useState(null);
 
-  const [shortResponse, setShortResponse] = useState(() => {
-    const initial = user?.settings?.messageType === 'SHORT_LIMIT' ? true : false;
-    console.log('🎬 INITIAL shortResponse:', initial);
-    console.log('🎬 INITIAL messageType:', user?.settings?.messageType);
-    return initial;
+  const [responseType, setResponseType] = useState(() => {
+    // Load from user settings in DB, default to NORMAL
+    const savedType = user?.settings?.responseType || 'NORMAL';
+    console.log('🎬 INITIAL responseType from DB:', savedType);
+    return savedType;
   });
 
+  const [shortResponse, setShortResponse] = useState(true); // For response length toggle
+  const [promptsData, setPromptsData] = useState(null); // For prompts loaded from backend
+  const [messageType, setMessageType] = useState('NORMAL'); // For message type (if used)
+  // Helper for religion instruction (define as needed)
+  const religionInstruction = '';
+    const getPrompt = (path, fallback = '') => {
+    if (!prompts) return fallback;
 
+    const keys = path.split('.');
+    let result = prompts;
 
+    for (const key of keys) {
+      result = result?.[key];
+      if (result === undefined) return fallback;
+    }
 
+    return result || fallback;
+  };
+
+  // Helper for shortLimit (define as needed)
+  const shortLimit = shortResponse ? getPrompt('base.RESPONSE_SHORT', 'Keep response SHORT (30-50 words max). Simple language.') : getPrompt('base.RESPONSE_DETAILED', 'Provide detailed response.');
 
   const [showLanguageDropdown, setShowLanguageDropdown] = useState(false);
 
@@ -198,20 +214,7 @@ function ChatBot() {
     }
   };
 
-  // ✅ Helper functions for prompt access
-  const getPrompt = (path, fallback = '') => {
-    if (!prompts) return fallback;
-
-    const keys = path.split('.');
-    let result = prompts;
-
-    for (const key of keys) {
-      result = result?.[key];
-      if (result === undefined) return fallback;
-    }
-
-    return result || fallback;
-  };
+  // Move getPrompt and related helpers here
 
   const getReligionPrompt = (religion, type = 'CONTEXT') => {
     const religionKey = religion?.toUpperCase() || 'HINDU';
@@ -228,6 +231,21 @@ function ChatBot() {
     }
 
     return "🔮 Guru ji is consulting the cosmic energies... ✨";
+  };
+
+
+  // ✅ Get response instruction based on type
+  const getResponseInstruction = () => {
+    switch (responseType) {
+      case 'QUICK':
+        return getPrompt('base.RESPONSE_QUICK', 'Keep response SHORT (30-50 words max).');
+      case 'NORMAL':
+        return getPrompt('base.RESPONSE_NORMAL', 'Keep response MODERATE (80-150 words).');
+      case 'DETAILED':
+        return getPrompt('base.RESPONSE_DETAILED', 'Provide detailed response (180-250 words).');
+      default:
+        return getPrompt('base.RESPONSE_NORMAL', 'Keep response MODERATE (80-150 words).');
+    }
   };
 
   // ✅ NEW: Fetch latest preferred language from backend
@@ -333,6 +351,27 @@ function ChatBot() {
       console.log('═══════════════════════════════════════════════');
     }
   };
+
+  // ✅ NEW: Cycle through response types on click
+ const toggleResponseType = async () => {
+  setResponseType((current) => {
+    let next;
+    if (current === 'QUICK') next = 'NORMAL';
+    else if (current === 'NORMAL') next = 'DETAILED';
+    else next = 'QUICK';
+
+    // Update in DB
+    if (userSettings?.SettingId || user?.settings?.settingId) {
+      const settingIdToUse = userSettings?.SettingId || user?.settings?.settingId;
+      updateUserSettings(settingIdToUse, {
+        MessageType: next,
+        ModifiedBy: user?.full_name || 'User'
+      });
+    }
+    return next;
+  });
+};
+
 
 
   // ✅ Full 100 suggestion questions grouped by category
@@ -608,7 +647,7 @@ function ChatBot() {
     "Main apne soulmate se kab milunga?",
     "Meri destiny me love marriage hai ya arranged marriage?",
     "Kya mera family meri love marriage approve karega?",
-    "Kya mera partner loyal aur compatible hoga?",
+    "Kya mera partner vafadar aur anukool hoga?",
     "Kya mere paas inter-caste ya inter-religion marriage ke chances hain?",
     "Meri shaadi kab hogi?",
     "Kya meri ek se zyada shaadi hogi?",
@@ -633,7 +672,7 @@ function ChatBot() {
     "Kya mere paas sudden wealth ke chances hain?",
     "Kya main lottery ya jackpot jeetunga?",
     "Kya meri kundli me financial ups and downs hain?",
-    "Mere liye kaunsa investment best hai – stock, gold ya property?",
+    "Mere liye kaunsa investment best hai – shares, sona ya property?",
     "Kya mujhe family se property inherit hogi?",
     "Kya real estate mere liye achha option hai?",
     "Main apne debts kab clear karunga?",
@@ -656,7 +695,7 @@ function ChatBot() {
     "Kaunsa grah mere health ko sabse zyada affect karta hai?",
     "Kya main apni current illness se recover karunga?",
     "Kya mujhe accidents se bachna chahiye?",
-    "Surgery ya treatment ka best time kab hai?",
+    "Surgery ya treatment ke liye sabse acha time kab hai?",
     "Mere liye kaunsa yoga ya meditation best hoga?",
     "Kaunse upay mujhe health issues se protect karte hain?",
 
@@ -1137,8 +1176,7 @@ function ChatBot() {
     }
   }, [user?.settings?.Language]);
 
-
-  // ✅ Load temporary profile from session storage
+  // Load temporary profile from session storage
   useEffect(() => {
     const savedTempProfile = sessionStorage.getItem('astroguru_temp_profile');
     if (savedTempProfile) {
@@ -1233,40 +1271,40 @@ function ChatBot() {
   };
 
   // ✅ UPDATED: Initialize with database chat history
-useEffect(() => {
-  if (user?.userId && !hasInitialized && prompts) {
-    const loadInitialData = async () => {
-      // ✅ STEP 1: Fetch settings FIRST
-      console.log('🔧 Step 1: Fetching user settings...');
-      await fetchUserSettings();
-      
-      // ✅ STEP 2: Then load chat history
-      console.log('📚 Step 2: Loading chat history...');
-      const savedMessages = await loadChatHistory();
-      const savedFirstQuestion = savedMessages.length === 0;
-      const savedDraft = loadDraftMessage();
-      const savedResponsePreference = loadResponsePreference();
-      
-      setMessages(savedMessages);
-      setIsFirstQuestion(savedFirstQuestion);
-      setDraftMessage(savedDraft);
-      setInputValue(savedDraft);
-      setShortResponse(savedResponsePreference);
-      setHasInitialized(true);
-      
-      console.log('📚 Loaded chat data from DATABASE:', {
-        messagesCount: savedMessages.length,
-        isFirstQuestion: savedFirstQuestion,
-        hasDraft: !!savedDraft,
-        shortResponse: savedResponsePreference,
-        language: userSettings?.Language || selectedLanguage,
-        religion: user.religion,
-        promptsVersion: prompts?.version
-      });
-    };
-    loadInitialData();
-  }
-}, [user?.userId, hasInitialized, prompts]);
+  useEffect(() => {
+    if (user?.userId && !hasInitialized && prompts) {
+      const loadInitialData = async () => {
+        // ✅ STEP 1: Fetch settings FIRST
+        console.log('🔧 Step 1: Fetching user settings...');
+        await fetchUserSettings();
+
+        // ✅ STEP 2: Then load chat history
+        console.log('📚 Step 2: Loading chat history...');
+        const savedMessages = await loadChatHistory();
+        const savedFirstQuestion = savedMessages.length === 0;
+        const savedDraft = loadDraftMessage();
+        const savedResponsePreference = loadResponsePreference();
+
+        setMessages(savedMessages);
+        setIsFirstQuestion(savedFirstQuestion);
+        setDraftMessage(savedDraft);
+        setInputValue(savedDraft);
+        setShortResponse(savedResponsePreference);
+        setHasInitialized(true);
+
+        console.log('📚 Loaded chat data from DATABASE:', {
+          messagesCount: savedMessages.length,
+          isFirstQuestion: savedFirstQuestion,
+          hasDraft: !!savedDraft,
+          shortResponse: savedResponsePreference,
+          language: userSettings?.Language || selectedLanguage,
+          religion: user.religion,
+          promptsVersion: prompts?.version
+        });
+      };
+      loadInitialData();
+    }
+  }, [user?.userId, hasInitialized, prompts]);
 
 
   // Save first question status whenever it changes
@@ -1397,17 +1435,38 @@ useEffect(() => {
 
   // ✅ Force UI update when settings change
   // ✅ NEW: Force language dropdown to update when selectedLanguage changes
+  // Save settings when they change
+  // ✅ Save settings to DB when they change
   useEffect(() => {
-    console.log('🔄 Language state changed:', selectedLanguage);
-    console.log('🔄 Current userSettings:', userSettings);
+    if (user?.id && promptsData) {
+      const saveSettings = async () => {
+        try {
+          console.log('💾 Saving settings to DB:', {
+            language: selectedLanguage,
+            messageType: messageType,
+            responseType: responseType
+          });
 
-    // Force re-render of language display
-    const languageButton = document.querySelector('.language-toggle .language-text');
-    if (languageButton) {
-      const lang = LANGUAGES.find(lang => lang.key === selectedLanguage);
-      console.log('🌍 Updating language display to:', lang?.displayName);
+          await updateUserSettings({
+            userId: user.id,
+            language: selectedLanguage,
+            messageType: messageType,
+            responseType: responseType
+          });
+
+          console.log('✅ Settings saved successfully');
+        } catch (error) {
+          console.error('❌ Error saving settings:', error);
+        }
+      };
+
+      // Debounce save by 500ms to avoid too many API calls
+      const timeoutId = setTimeout(saveSettings, 500);
+      return () => clearTimeout(timeoutId);
     }
-  }, [selectedLanguage, userSettings]);
+  }, [selectedLanguage, messageType, responseType, user?.id]);
+
+
 
 
 
@@ -1454,6 +1513,8 @@ useEffect(() => {
     const responseLength = shortResponse ?
       getPrompt('base.RESPONSE_SHORT', 'Keep response SHORT (30-50 words max). Simple language.') :
       getPrompt('base.RESPONSE_DETAILED', 'Provide detailed response.');
+
+
 
     const religionContext = getReligionPrompt(religion);
     const guruTone = getPrompt('base.GURU_TONE', 'Warm, caring tone.');
@@ -1666,182 +1727,191 @@ useEffect(() => {
   };
 
   // ✅ UPDATED: Handle send with database storage - SAVE ONLY USER MESSAGE
-// ✅ UPDATED: Handle send with credit deduction based on message type
-async function handleSend() {
-  if (!inputValue.trim()) return;
+  // ✅ UPDATED: Handle send with credit deduction based on message type
+  async function handleSend() {
+    if (!inputValue.trim()) return;
 
-  setFilteredSuggestions([]);
-  setShowSuggestions(false);
+    setFilteredSuggestions([]);
+    setShowSuggestions(false);
 
-  // ✅ Store the ORIGINAL user message (without prompts)
-  const originalUserMessage = inputValue.trim();
+    // ✅ Store the ORIGINAL user message (without prompts)
+    const originalUserMessage = inputValue.trim();
 
-  const userMessage = {
-    message: originalUserMessage,
-    direction: 'outgoing',
-    sender: 'user',
-    timestamp: new Date().toISOString()
-  };
-  push(userMessage);
+    const userMessage = {
+      message: originalUserMessage,
+      direction: 'outgoing',
+      sender: 'user',
+      timestamp: new Date().toISOString()
+    };
+    push(userMessage);
 
-  const profile = tempBirthProfile || user;
-  const religion = profile?.religion || 'Hindu';
+    const profile = tempBirthProfile || user;
+    const religion = profile?.religion || 'Hindu';
 
-  const baseContext = getUserProfileContext();
-  const questionTemplate = replaceTemplate(
-    getPrompt('template.QUESTION_TEMPLATE', 'Respond as Guru ji with {religion} context.'),
-    { religion: religion }
-  );
-  const shortLimit = shortResponse ? getPrompt('template.SHORT_LIMIT', 'Max 40-50 words.') : '';
-
-  // ✅ This is ONLY for AI processing - NOT for database
-  const fullMessageWithProfile = `${baseContext}\n\nQuestion: "I am ${religion}. ${originalUserMessage}"\n\n${questionTemplate}${shortResponse ? ` ${shortLimit}` : ''}`;
-
-  console.log(`🔮 Sending message with ${religion} context and ${selectedLanguage} language`);
-  console.log('👤 User original message:', originalUserMessage);
-  console.log('🤖 Full AI prompt:', fullMessageWithProfile);
-  if (tempBirthProfile) {
-    console.log('🎭 Using temporary birth profile:', tempBirthProfile.full_name);
-  }
-
-  setInputValue('');
-  clearDraft();
-  setIsTyping(true);
-
-  try {
-    // ═══════════════════════════════════════════════════════════════════════════
-    // 💸 STEP 1: DEDUCT CREDITS BASED ON MESSAGE TYPE
-    // ═══════════════════════════════════════════════════════════════════════════
-    
-    // Determine spend_type_id based on message type
-    let spendTypeId;
-    let creditsRequired;
-    
-    if (userSettings?.MessageType === 'SHORT_LIMIT' || shortResponse) {
-      spendTypeId = 1; // Short message
-      creditsRequired = 10; // Assuming 1 credit for short
-    } else if (userSettings?.MessageType === 'DETAILED') {
-      spendTypeId = 2; // Detailed message
-      creditsRequired = 15; // Assuming 5 credits for detailed
-    } else {
-      spendTypeId = 3; // Medium message
-      creditsRequired = 20; // Assuming 3 credits for medium
-    }
-
-    console.log('💳 Deducting credits:', {
-      userId: user.userId,
-      spendTypeId,
-      messageType: userSettings?.MessageType || (shortResponse ? 'SHORT_LIMIT' : 'DETAILED'),
-      creditsRequired
-    });
-
-    // Check if user has enough credits
-    if (user.credits < creditsRequired) {
-      setRequiredCredits(creditsRequired);
-      setShowInsufficientModal(true);
-      setIsTyping(false);
-      console.log('❌ Insufficient credits - need:', creditsRequired, 'have:', user.credits);
-      
-      // Remove user message since we couldn't process it
-      setMessages(prev => prev.slice(0, -1));
-      setInputValue(originalUserMessage); // Restore input
-      return;
-    }
-
-    // ✅ Call spendCredits API
-    const spendResponse = await spendCredits(
-      user.userId,
-      spendTypeId,
-      `Chat question: ${originalUserMessage.substring(0, 50)}...`,
-      null
+    const baseContext = getUserProfileContext();
+    const questionTemplate = replaceTemplate(
+      getPrompt('template.QUESTION_TEMPLATE', 'Respond as Guru ji with {religion} context.'),
+      { religion: religion }
     );
+    //const shortLimit = shortResponse ? getPrompt('template.SHORT_LIMIT', 'Max 40-50 words.') : '';
+    const responseInstruction = getResponseInstruction();
 
-    if (!spendResponse.data.success) {
-      throw new Error('Failed to deduct credits');
+    const systemPrompt = `
+  ${getPrompt('base.GURU_BASE', 'You are Guru ji, wise astrologer.')}
+  ${getPrompt('base.GURU_TONE', 'Warm, caring tone.')}
+  ${responseInstruction}
+  ${religionInstruction}
+  ${languageInstruction}
+`.trim();
+
+    // ✅ This is ONLY for AI processing - NOT for database
+    const fullMessageWithProfile = `${baseContext}\n\nQuestion: "I am ${religion}. ${originalUserMessage}"\n\n${questionTemplate}${shortResponse ? ` ${shortLimit}` : ''}`;
+
+    console.log(`🔮 Sending message with ${religion} context and ${selectedLanguage} language`);
+    console.log('👤 User original message:', originalUserMessage);
+    console.log('🤖 Full AI prompt:', fullMessageWithProfile);
+    if (tempBirthProfile) {
+      console.log('🎭 Using temporary birth profile:', tempBirthProfile.full_name);
     }
 
-    console.log('✅ Credits deducted successfully:', spendResponse.data);
-    console.log('💰 New balance:', spendResponse.data.balance.currentCredits);
+    setInputValue('');
+    clearDraft();
+    setIsTyping(true);
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // 🔄 STEP 2: REFRESH USER CREDITS
-    // ═══════════════════════════════════════════════════════════════════════════
-    
-    // Refresh credits in AuthContext
-    if (typeof refreshCredits === 'function') {
-      await refreshCredits();
-      console.log('✅ Credits refreshed in AuthContext');
-    } else {
-      console.warn('⚠️ refreshCredits function not available in AuthContext');
-    }
+    try {
+      // ═══════════════════════════════════════════════════════════════════════════
+      // 💸 STEP 1: DEDUCT CREDITS BASED ON MESSAGE TYPE
+      // ═══════════════════════════════════════════════════════════════════════════
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // 💬 STEP 3: SEND MESSAGE AND GET AI RESPONSE
-    // ═══════════════════════════════════════════════════════════════════════════
+      // Determine spend_type_id based on message type
+      let spendTypeId;
+      let creditsRequired;
 
-    console.log('💾 Saving message to database with AI response...');
-    const { data } = await saveChatMessage(
-      user.id,
-      originalUserMessage,  // ✅ ORIGINAL user message for DB
-      fullMessageWithProfile  // ✅ FULL prompt for AI
-    );
+      if (userSettings?.MessageType === 'SHORT_LIMIT' || shortResponse) {
+        spendTypeId = 1; // Short message
+        creditsRequired = 10; // Assuming 1 credit for short
+      } else if (userSettings?.MessageType === 'DETAILED') {
+        spendTypeId = 2; // Detailed message
+        creditsRequired = 15; // Assuming 5 credits for detailed
+      } else {
+        spendTypeId = 3; // Medium message
+        creditsRequired = 20; // Assuming 3 credits for medium
+      }
 
-    if (data.success) {
+      console.log('💳 Deducting credits:', {
+        userId: user.userId,
+        spendTypeId,
+        messageType: userSettings?.MessageType || (shortResponse ? 'SHORT_LIMIT' : 'DETAILED'),
+        creditsRequired
+      });
+
+      // Check if user has enough credits
+      if (user.credits < creditsRequired) {
+        setRequiredCredits(creditsRequired);
+        setShowInsufficientModal(true);
+        setIsTyping(false);
+        console.log('❌ Insufficient credits - need:', creditsRequired, 'have:', user.credits);
+
+        // Remove user message since we couldn't process it
+        setMessages(prev => prev.slice(0, -1));
+        setInputValue(originalUserMessage); // Restore input
+        return;
+      }
+
+      // ✅ Call spendCredits API
+      const spendResponse = await spendCredits(
+        user.userId,
+        spendTypeId,
+        `Chat question: ${originalUserMessage.substring(0, 50)}...`,
+        null
+      );
+
+      if (!spendResponse.data.success) {
+        throw new Error('Failed to deduct credits');
+      }
+
+      console.log('✅ Credits deducted successfully:', spendResponse.data);
+      console.log('💰 New balance:', spendResponse.data.balance.currentCredits);
+
+      // ═══════════════════════════════════════════════════════════════════════════
+      // 🔄 STEP 2: REFRESH USER CREDITS
+      // ═══════════════════════════════════════════════════════════════════════════
+
+      // Refresh credits in AuthContext
+      if (typeof refreshCredits === 'function') {
+        await refreshCredits();
+        console.log('✅ Credits refreshed in AuthContext');
+      } else {
+        console.warn('⚠️ refreshCredits function not available in AuthContext');
+      }
+
+      // ═══════════════════════════════════════════════════════════════════════════
+      // 💬 STEP 3: SEND MESSAGE AND GET AI RESPONSE
+      // ═══════════════════════════════════════════════════════════════════════════
+
+      console.log('💾 Saving message to database with AI response...');
+      const { data } = await saveChatMessage(
+        user.id,
+        originalUserMessage,  // ✅ ORIGINAL user message for DB
+        fullMessageWithProfile  // ✅ FULL prompt for AI
+      );
+
+      if (data.success) {
+        push({
+          message: data.reply,
+          direction: 'incoming',
+          sender: 'assistant',
+          timestamp: new Date().toISOString()
+        });
+        console.log('✅ Message and response saved to database');
+
+        // Update first question status
+        setIsFirstQuestion(false);
+      } else {
+        throw new Error('Failed to save message');
+      }
+
+    } catch (err) {
+      console.error('❌ Chat error:', err);
+
+      const userName = profile?.given_name || profile?.name?.split(' ')[0] || 'beta';
+      const religionBlessing = getReligionBlessing(profile?.religion);
+
+      const errorTemplate = getPrompt('template.ERROR_NETWORK', 'the cosmic connection seems disturbed at this moment. May {blessing} be with you, the divine energies are temporarily realigning. Please try again in a moment, my child. **Peace be with you...** 🙏✨');
+      const errorMessage = replaceTemplate(errorTemplate, { blessing: religionBlessing });
+
       push({
-        message: data.reply,
+        message: `Forgive me ${userName}, ${errorMessage}`,
         direction: 'incoming',
         sender: 'assistant',
         timestamp: new Date().toISOString()
       });
-      console.log('✅ Message and response saved to database');
-      
-      // Update first question status
-      setIsFirstQuestion(false);
-    } else {
-      throw new Error('Failed to save message');
-    }
-    
-  } catch (err) {
-    console.error('❌ Chat error:', err);
-    
-    const userName = profile?.given_name || profile?.name?.split(' ')[0] || 'beta';
-    const religionBlessing = getReligionBlessing(profile?.religion);
 
-    const errorTemplate = getPrompt('template.ERROR_NETWORK', 'the cosmic connection seems disturbed at this moment. May {blessing} be with you, the divine energies are temporarily realigning. Please try again in a moment, my child. **Peace be with you...** 🙏✨');
-    const errorMessage = replaceTemplate(errorTemplate, { blessing: religionBlessing });
-
-    push({
-      message: `Forgive me ${userName}, ${errorMessage}`,
-      direction: 'incoming',
-      sender: 'assistant',
-      timestamp: new Date().toISOString()
-    });
-    
-    // Try to refund credits if message failed
-    try {
-      console.log('🔄 Attempting to refresh credits after error...');
-      if (typeof refreshCredits === 'function') {
-        await refreshCredits();
+      // Try to refund credits if message failed
+      try {
+        console.log('🔄 Attempting to refresh credits after error...');
+        if (typeof refreshCredits === 'function') {
+          await refreshCredits();
+        }
+      } catch (refreshErr) {
+        console.error('❌ Failed to refresh credits:', refreshErr);
       }
-    } catch (refreshErr) {
-      console.error('❌ Failed to refresh credits:', refreshErr);
+
+    } finally {
+      setIsTyping(false);
     }
-    
-  } finally {
-    setIsTyping(false);
   }
-}
 
 
 
-const handleKeyPress = (e) => {
-  if (e.key === 'Enter') {
-    e.preventDefault(); // ✅ Prevent default form submission
-    setFilteredSuggestions([]); // ✅ Clear suggestions
-    setShowSuggestions(false); // ✅ Hide suggestions box
-    handleSend();
-  }
-};
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault(); // ✅ Prevent default form submission
+      setFilteredSuggestions([]); // ✅ Clear suggestions
+      setShowSuggestions(false); // ✅ Hide suggestions box
+      handleSend();
+    }
+  };
 
 
   const handleGetCredits = () => {
@@ -2021,13 +2091,20 @@ const handleKeyPress = (e) => {
 
                   {/* Response Length Toggle */}
                   <button
-                    className={`preference-toggle ${shortResponse ? 'active' : ''}`}
-                    onClick={toggleResponseLength}
+                    className="language-toggle"
+                    onClick={toggleResponseType}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: 'inherit',
+                      cursor: 'pointer',
+                      padding: 0,
+                      font: 'inherit'
+                    }}
                   >
-                    <span className="toggle-icon">{shortResponse ? '⚡' : '📖'}</span>
-                    <span className="toggle-text">
-                      {shortResponse ? 'Quick' : 'Detailed'}
-                    </span>
+                    {responseType === 'QUICK' && '⚡ Quick Response'}
+                    {responseType === 'NORMAL' && '💬 Normal Response'}
+                    {responseType === 'DETAILED' && '📖 Detailed Response'}
                   </button>
 
                   {/* Clear Chat Button */}
@@ -2195,40 +2272,40 @@ const handleKeyPress = (e) => {
         </div>
         */}
       </div>
-<div className="input-area">
-          <input
-            type="text"
-            value={inputValue}
-            onChange={handleInputWithSuggestions}
-            onKeyPress={handleKeyPress}
-            placeholder="Your stars hold the answers ✨ Ask about life, career, love, health, or destiny – and get personalized guidance now!"
-            className="chat-input"
-          />
-          {filteredSuggestions.length > 0 && (
-            <div className="suggestion-box">
-              {filteredSuggestions.map((s, i) => (
-                <div
-                  key={i}
-                  className="suggestion-item"
-                  onClick={() => {
-                    setInputValue(s);
-                    setFilteredSuggestions([]);
-                  }}
-                >
-                  {s}
-                </div>
-              ))}
-            </div>
-          )}
+      <div className="input-area">
+        <input
+          type="text"
+          value={inputValue}
+          onChange={handleInputWithSuggestions}
+          onKeyPress={handleKeyPress}
+          placeholder="Your stars hold the answers ✨ Ask about life, career, love, health, or destiny – and get personalized guidance now!"
+          className="chat-input"
+        />
+        {filteredSuggestions.length > 0 && (
+          <div className="suggestion-box">
+            {filteredSuggestions.map((s, i) => (
+              <div
+                key={i}
+                className="suggestion-item"
+                onClick={() => {
+                  setInputValue(s);
+                  setFilteredSuggestions([]);
+                }}
+              >
+                {s}
+              </div>
+            ))}
+          </div>
+        )}
 
-          <button
-            onClick={handleSend}
-            disabled={!inputValue.trim() || isTyping}
-            className={`send-button ${inputValue.trim() && !isTyping ? 'active' : 'inactive'}`}
-          >
-            {isTyping ? 'Send' : 'Send'}
-          </button>
-        </div>
+        <button
+          onClick={handleSend}
+          disabled={!inputValue.trim() || isTyping}
+          className={`send-button ${inputValue.trim() && !isTyping ? 'active' : 'inactive'}`}
+        >
+          {isTyping ? 'Send' : 'Send'}
+        </button>
+      </div>
       {/* ✅ BIRTH DETAILS MODAL - keeping all the existing modal code exactly as is */}
       {
         showBirthDetailsPopup && (
@@ -2507,13 +2584,7 @@ const handleKeyPress = (e) => {
               </div>
 
               <div className="modal-buttons">
-                <button
-                  className="btn-secondary"
-                  onClick={closeBirthDetailsPopup}
-                  disabled={isLoading}
-                >
-                  Cancel
-                </button>
+
                 <button
                   className="btn-primary"
                   onClick={handleRegistrationComplete}

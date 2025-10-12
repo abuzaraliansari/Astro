@@ -1128,6 +1128,37 @@ export const spendCredits = (userId, spendTypeId, description = null, promoCode 
 };
 
 
+export const sendEmailNotification = async (template, recipientEmail, data) => {
+  try {
+    console.log('📧 SENDING EMAIL NOTIFICATION THROUGH BACKEND:', {
+      template,
+      recipient: recipientEmail,
+      hasData: !!data
+    });
+
+    const response = await api.post('/astro/notifications/send', {
+      template,
+      recipientEmail,
+      data
+    });
+
+    console.log('✅ EMAIL NOTIFICATION SENT:', {
+      success: response.data.success,
+      messageId: response.data.messageId,
+      template: response.data.template,
+      recipient: response.data.recipient
+    });
+
+    return response;
+  } catch (error) {
+    console.error('❌ SEND EMAIL NOTIFICATION ERROR:', error);
+    if (error.code === 'ECONNREFUSED' || error.code === 'ERR_NETWORK') {
+      throw new Error('❌ Backend server is not running! Please start your API server.');
+    }
+    throw error;
+  }
+};
+
 
 
 
@@ -1191,5 +1222,6 @@ export default {
   purchaseCredits,
   getSpendTypes,
   spendCredits,
+  sendEmailNotification,
   api
 };

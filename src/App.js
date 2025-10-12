@@ -17,23 +17,15 @@ import MoonTracker from './components/MoonTracker';
 import BookPooja from './components/BookPooja';
 import Refer from './components/refer';
 import Profile from './components/ProfileModal';
+
 import './App.css';
 
-// Layout component adds Header and Footer conditionally and checks auth status to redirect unauthenticated users
 const Layout = ({ children }) => {
   const location = useLocation();
-  const navigate = useNavigate();
   const { user } = useAuth();
 
   const isAuthPage = location.pathname === '/';
-   const isHomePage = location.pathname === '/home'; 
-
-  // Redirect unauthenticated user to login page "/" if not on login page
-  useEffect(() => {
-    if (!user && !isAuthPage) {
-      navigate('/', { replace: true });
-    }
-  }, [user, isAuthPage, navigate]);
+  const isHomePage = location.pathname === '/home';
 
   return (
     <div className="app-layout">
@@ -41,7 +33,7 @@ const Layout = ({ children }) => {
       <main className={`main-content ${!isAuthPage ? 'with-header-footer' : ''}`}>
         {children}
       </main>
-        {isHomePage && <Footer />}
+      {isHomePage && <Footer />}
     </div>
   );
 };

@@ -28,9 +28,9 @@ const Refer = () => {
     try {
       setLoading(true);
       console.log('🎫 Fetching referral code for user:', user.userId);
-      
+
       const response = await getUserReferralCode(user.userId);
-      
+
       if (response.data.success) {
         if (response.data.referralCode) {
           setReferralCode(response.data.referralCode);
@@ -52,14 +52,14 @@ const Refer = () => {
     try {
       setLoadingProgress(true);
       console.log('📊 Fetching referral progress for user:', user.userId);
-      
+
       const response = await getUserReferralProgress(user.userId);
-      
+
       if (response.data.success) {
         setReferralCount(response.data.referralCount || 0);
         setCreditsEarned(response.data.totalCreditsEarned || 0);
         setProgressData(response.data.progress);
-        
+
         console.log('✅ Referral progress loaded:', {
           referralCount: response.data.referralCount,
           creditsEarned: response.data.totalCreditsEarned,
@@ -77,9 +77,9 @@ const Refer = () => {
     try {
       setGenerating(true);
       console.log('🎫 Generating new referral code...');
-      
+
       const response = await generateUserReferralCode(user.userId);
-      
+
       if (response.data.success) {
         setReferralCode(response.data.referralCode);
         console.log('✅ Referral code generated:', response.data.referralCode);
@@ -114,7 +114,7 @@ const Refer = () => {
   const handleInstagramShare = () => {
     const referralLink = getReferralLink();
     const message = `🌟 Join AstroGuru for personalized astrological guidance!\n\nUse my referral code: ${referralCode}\n\n${referralLink}`;
-    
+
     copyToClipboard(message, 'instagram');
     alert('📱 Message copied! Now paste it in your Instagram story, post, or bio.');
   };
@@ -132,7 +132,7 @@ const Refer = () => {
       await navigator.clipboard.writeText(text);
       setCopySuccess(type);
       console.log('✅ Copied to clipboard:', type);
-      
+
       setTimeout(() => {
         setCopySuccess('');
       }, 3000);
@@ -212,10 +212,10 @@ const Refer = () => {
               rel="noopener noreferrer"
               className="share-btn whatsapp"
             >
-              <span className="btn-icon">💬</span>
+              <span className="btn-icon"><a href="https://wa.me/919999999999" class="fa-brands fa-whatsapp"></a></span>
               <span className="btn-text">WhatsApp</span>
             </a>
-            
+
             {/* Facebook */}
             <a
               href={getFacebookLink()}
@@ -223,7 +223,8 @@ const Refer = () => {
               rel="noopener noreferrer"
               className="share-btn facebook"
             >
-              <span className="btn-icon">📘</span>
+              <span className="btn-icon"><a href="https://facebook.com" class="fa-brands fa-facebook"></a>
+              </span>
               <span className="btn-text">Facebook</span>
             </a>
 
@@ -232,7 +233,8 @@ const Refer = () => {
               className={`share-btn instagram ${copySuccess === 'instagram' ? 'copied' : ''}`}
               onClick={handleInstagramShare}
             >
-              <span className="btn-icon">📸</span>
+              <span className="btn-icon"><a href="https://instagram.com" class="fa-brands fa-instagram"></a>
+              </span>
               <span className="btn-text">
                 {copySuccess === 'instagram' ? '✓ Copied!' : 'Instagram'}
               </span>
@@ -244,12 +246,14 @@ const Refer = () => {
               target="_blank"
               rel="noopener noreferrer"
               className="share-btn twitter"
+             
             >
-              <span className="btn-icon">🐦</span>
-              <span className="btn-text">Twitter</span>
+              <span className="btn-icon" ><a href="https://x.com" class="fa-brands fa-x-twitter"></a>
+              </span>
+              <span className="btn-text" >Twitter</span>
             </a>
 
-            {/* Copy Link */}
+            {/* Copy Link 
             <button
               className="share-btn custom"
               onClick={() => copyToClipboard(getReferralLink(), 'link')}
@@ -257,8 +261,10 @@ const Refer = () => {
               <span className="btn-icon">🔗</span>
               <span className="btn-text">Copy Link</span>
             </button>
+            */}
           </div>
         </div>
+
 
         {/* How it Works */}
         <div className="how-it-works">
@@ -288,6 +294,7 @@ const Refer = () => {
                 <ul>
                   <li>👫 <strong>3 referrals</strong> → <strong>50 bonus credits</strong></li>
                   <li>👨‍👩‍👧‍👦 <strong>5 referrals</strong> → <strong>100 bonus credits</strong></li>
+                  <li><strong>And many more Reword</strong></li>
                 </ul>
                 <p>Credits are auto-applied once your referrals complete their first payment.</p>
               </div>
@@ -350,10 +357,10 @@ const Refer = () => {
               </span>
             </div>
             <div className="progress-bar">
-              <div 
-                className="progress-fill" 
-                style={{ 
-                  width: `${(referralCount / progressData.nextMilestone.count) * 100}%` 
+              <div
+                className="progress-fill"
+                style={{
+                  width: `${(referralCount / progressData.nextMilestone.count) * 100}%`
                 }}
               ></div>
             </div>

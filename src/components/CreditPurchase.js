@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef  } from 'react';
 import { useAuth } from '../AuthContext';
 import { getCreditPackages, purchaseCredits } from '../api';
 import { useNavigate, useLocation } from 'react-router-dom'
@@ -14,6 +14,8 @@ function CreditPurchase() {
   const [error, setError] = useState(null);
   const searchParams = new URLSearchParams(location.search);
   const source = searchParams.get('source');
+
+  const purchaseSectionRef = useRef(null);
 
   // ✅ Fetch credit packages from API on component mount
   useEffect(() => {
@@ -58,6 +60,16 @@ function CreditPurchase() {
   const handlePackageSelect = (packageData) => {
     setSelectedPackage(packageData);
     console.log('📦 Package selected:', packageData);
+
+    setTimeout(() => {
+    if (purchaseSectionRef.current) {
+      purchaseSectionRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+        inline: 'nearest'
+      });
+    }
+  }, 100);
   };
 
   // ✅ Generate unique transaction ID
@@ -68,6 +80,7 @@ function CreditPurchase() {
   };
 
 
+  
   // ✅ Purchase handler with limit error handling
   const handlePurchase = async () => {
     if (!selectedPackage || isProcessing) {
@@ -352,7 +365,7 @@ function CreditPurchase() {
         </div>
 
         {/* Purchase Section */}
-        <div className="purchase-section">
+        <div className="purchase-section" ref={purchaseSectionRef}>
           <button
             className={`main-purchase-btn ${selectedPackage ? 'enabled' : 'disabled'}`}
             onClick={handlePurchase}

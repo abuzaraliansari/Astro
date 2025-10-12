@@ -66,7 +66,7 @@ const Auth = ({ onLoginSuccess }) => {
   // ================================
   const placeInputRef = useRef(null);
   const searchTimeoutRef = useRef(null);
-  const contactNumber = '+91-9990553762';
+  const contactNumber = '+91-9711413917';
 
   // ================================
   // BIRTH DETAILS STATE
@@ -183,6 +183,40 @@ const Auth = ({ onLoginSuccess }) => {
 
   const toggleReligionDropdown = () => {
     setShowReligionDropdown(!showReligionDropdown);
+  };
+  // ✅ Send WhatsApp message for activation request
+  const sendActivationRequest = () => {
+    const whatsappNumber = '919711413917'; // Hemant's number
+
+    // ✅ Debug: Log what data we have
+    console.log('📱 sendActivationRequest called');
+    console.log('googleUserInfo:', googleUserInfo);
+    console.log('birthDetails:', birthDetails);
+    const userName = googleUserInfo?.name || birthDetails.fullname || 'User';
+    const userEmail = googleUserInfo?.email || 'Not provided';
+
+    // Create professional activation request message
+    const message = `Hello! 👋
+
+I'm requesting access to the AstroGuru Portal.
+
+📧 Email ID: ${userEmail}
+👤 Name: ${userName}
+
+Can you please enable access to my account?
+
+Thank you! 🙏`;
+
+    // URL encode the message
+    const encodedMessage = encodeURIComponent(message);
+
+    // Create WhatsApp link
+    const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodedMessage}`;
+
+    // Open WhatsApp in new tab
+    window.open(whatsappUrl, '_blank');
+
+    console.log('📱 WhatsApp activation request sent');
   };
 
 
@@ -317,13 +351,24 @@ const Auth = ({ onLoginSuccess }) => {
 
         if (response.data.waitingList) {
           console.log('📋 User added to waiting list');
+          const userDataForModal = {
+            name: response.data.user?.full_name || response.data.user?.name || birthDetails.full_name,
+            email: response.data.user?.email || googleUserInfo?.email
+          };
+
+          // Set googleUserInfo with complete data
+          setGoogleUserInfo(userDataForModal);
+
+          console.log('📧 User data stored for modal:', userDataForModal);
+          // Show waiting list modal
           setShowWaitingListModal(true);
           setShowBirthDetailsPopup(false);
-          setMessage(response.data.message);
+          setMessage(response.data.message || 'Account created successfully! You are on the waiting list.');
 
           if (response.data.userData?.referrerMilestoneReached) {
             console.log('🎉 Referrer reached milestone!', response.data.userData.milestoneDetails);
           }
+          // Do NOT clear user info or form data here!
         } else {
           console.log('✅ User activated - proceeding to home');
           setUser(response.data.user);
@@ -339,14 +384,15 @@ const Auth = ({ onLoginSuccess }) => {
           setTimeout(() => navigate('/home'), 2000);
         }
 
-        // Cleanup
-        console.log('🧹 Cleaning up form data...');
-        clearBirthDetails();
-        setSelectedPlace(null);
-        setGoogleCredential(null);
-        setGoogleUserInfo(null);
-        console.log('✅ Cleanup complete');
-
+        // Cleanup (only if NOT waiting list)
+        if (!response.data.waitingList) {
+          console.log('🧹 Cleaning up form data...');
+          clearBirthDetails();
+          setSelectedPlace(null);
+          setGoogleCredential(null);
+          setGoogleUserInfo(null);
+          console.log('✅ Cleanup complete');
+        }
       } else {
         console.error('❌ Registration failed - success: false');
         throw new Error(response.data.error || 'Registration failed');
@@ -369,11 +415,26 @@ const Auth = ({ onLoginSuccess }) => {
         console.log('📋 Processing error response data:', errorData);
 
         if (errorData.waitingList) {
-          console.log('📋 Error: User on waiting list');
+          console.log('❌ Error: User on waiting list');
+
+          // ✅ CRITICAL FIX: Store user data from error response
+          const userDataForModal = {
+            name: errorData.user?.full_name || errorData.user?.name || birthDetails.fullname,
+            email: errorData.user?.email || googleUserInfo?.email
+          };
+
+          setGoogleUserInfo(userDataForModal);
+          console.log('📧 User data stored from error:', userDataForModal);
+
           setShowWaitingListModal(true);
           setShowBirthDetailsPopup(false);
-          setMessage(errorData.message);
-        } else if (errorData.userExists) {
+          setMessage(errorData.message || 'You are on the waiting list.');
+
+          // ✅ DON'T clear data here
+          // setGoogleUserInfo(null); // ❌ REMOVE
+          // clearBirthDetails(); // ❌ REMOVE
+        }
+        else if (errorData.userExists) {
           console.log('👤 Error: User already exists');
           setMessage(errorData.message);
           setShowBirthDetailsPopup(false);
@@ -962,9 +1023,14 @@ const Auth = ({ onLoginSuccess }) => {
 
   const closeWaitingListModal = () => {
     setShowWaitingListModal(false);
+    // ✅ Clear data only when modal closes
     setGoogleCredential(null);
-    setGoogleUserInfo(null);
+    //setGoogleUserInfo(null);
+   // clearBirthDetails();
+   // setSelectedPlace(null);
+    setMessage('');
   };
+
 
   const handleModeChange = (newMode) => {
     setIsSignup(newMode);
@@ -977,6 +1043,7 @@ const Auth = ({ onLoginSuccess }) => {
     navigator.clipboard.writeText(contactNumber);
     alert('📞 Contact number copied to clipboard!');
   };
+
 
 
   useEffect(() => {
@@ -1009,7 +1076,6 @@ const Auth = ({ onLoginSuccess }) => {
       }
     };
   }, []);
-
 
 
   // Load countries from backend
@@ -1297,7 +1363,7 @@ const Auth = ({ onLoginSuccess }) => {
                     </div>
                   </div>
                 </div>
-                <h4 style={{ color: '#ffd700', fontStyle: 'bold'}}>Contact Details *
+                <h4 style={{ color: '#ffd700', fontStyle: 'bold' }}>Contact Details *
                 </h4>
                 {/* Mobile Number Row */}
                 <div className="form-row mobile-number-row">
@@ -1589,13 +1655,7 @@ const Auth = ({ onLoginSuccess }) => {
             </div>
 
             <div className="modal-buttons">
-              <button
-                className="btn-secondary"
-                onClick={closeBirthDetailsPopup}
-                disabled={isLoading}
-              >
-                Cancel
-              </button>
+             
               <button
                 className="btn-primary"
                 onClick={handleRegistrationComplete}
@@ -1852,23 +1912,26 @@ const Auth = ({ onLoginSuccess }) => {
               <div className="waiting-message">
                 <p>🌟 Thank you for your interest in AstroGuru! We're working hard to provide the best cosmic experience.</p>
                 <p>💌 You'll receive an email notification once your account is activated.</p>
-                <p>📞 For faster activation, contact M.A. at {contactNumber}</p>
+                <p>📞 For faster activation, contact at {contactNumber}</p>
               </div>
               <div className="contact-section">
-                <button className="contact-btn" onClick={copyContactNumber}>
+                {/*<button className="contact-btn" onClick={copyContactNumber}>
                   📞 Copy Contact Number
+                </button>*/}
+                <button className="contact-btn" onClick={sendActivationRequest}>
+                  <a href="https://wa.me/919999999999" class="fa-brands fa-whatsapp"></a>Activate via WhatsApp
                 </button>
               </div>
             </div>
 
-            <div className="modal-buttons">
+            {/* <div className="modal-buttons">
               <button
                 className="btn-secondary"
                 onClick={closeWaitingListModal}
               >
                 Close
               </button>
-            </div>
+            </div>*/}
           </div>
         </div>
       )}

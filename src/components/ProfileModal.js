@@ -445,6 +445,7 @@ const setDefaultCountries = () => {
         <div className="profile-page-container">
 
             <div className="birth-details-modal profile-page-modal">
+                <button className="modal-close-btn" onClick={handleCancel}>×</button>
                 <div className="modal-header">
                     <div className="modal-icon">👤</div>
                     <h2 className="modal-title">Edit Your Profile</h2>
@@ -790,13 +791,7 @@ const setDefaultCountries = () => {
                 </div>
 
                 <div className="modal-buttons">
-                    <button
-                        className="btn-secondary"
-                        onClick={handleCancel}
-                        disabled={isLoading}
-                    >
-                        Cancel
-                    </button>
+                   
                     <button
                         className="btn-primary"
                         onClick={handleSave}
@@ -809,8 +804,8 @@ const setDefaultCountries = () => {
                             </>
                         ) : (
                             <>
-                                <span>💾</span>
-                                <span>Save Changes</span>
+                                
+                                <span>Update Profile</span>
                             </>
                         )}
                     </button>

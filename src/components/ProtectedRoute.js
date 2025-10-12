@@ -1,10 +1,12 @@
 import React from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
+  const location = useLocation();
 
+  // ✅ Show loading state while checking authentication
   if (loading) {
     return (
       <div style={{
@@ -14,17 +16,37 @@ const ProtectedRoute = ({ children }) => {
         justifyContent: 'center',
         alignItems: 'center',
         color: 'white',
-        fontSize: '18px'
+        fontSize: '18px',
+        fontFamily: 'Arial, sans-serif'
       }}>
         <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: '48px', marginBottom: '20px' }}>⭐</div>
-          <div>Loading your cosmic journey...</div>
+          <div style={{ 
+            fontSize: '48px', 
+            marginBottom: '20px',
+            animation: 'pulse 2s ease-in-out infinite'
+          }}>⭐</div>
+          <div style={{ fontSize: '18px', fontWeight: '500' }}>
+            Loading your cosmic journey...
+          </div>
         </div>
+        <style>{`
+          @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.2); opacity: 0.7; }
+          }
+        `}</style>
       </div>
     );
   }
 
-  return user ? children : <Navigate to="/" replace />;
+  // ✅ If not authenticated, redirect to login page
+  if (!user) {
+    console.log(`🔒 Protected route blocked: ${location.pathname}`);
+    return <Navigate to="/" replace />;
+  }
+
+  // ✅ User is authenticated, render the protected component
+  return children;
 };
 
 export default ProtectedRoute;

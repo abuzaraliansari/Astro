@@ -461,11 +461,13 @@ body.modal-open {
   text-align: center;
   max-width: 550px;
   width: 90%;
-  max-height: 90vh;
+  max-height: 80vh;
   overflow-y: auto;
   position: relative;
   animation: modalSlideIn 0.4s ease-out;
 }
+
+
 
 @keyframes modalSlideIn {
   0% {
@@ -496,7 +498,7 @@ body.modal-open {
 }
 
 .modal-header {
-  margin-bottom: 25px;
+  margin-bottom: 10px;
 }
 
 .modal-icon {
@@ -536,7 +538,7 @@ body.modal-open {
 .form-row {
   display: flex;
   gap: 12px;
-  width: 100%;
+  width: 90%;
   align-items: flex-end; /* Align all elements to bottom */
 }
 
@@ -650,7 +652,7 @@ body.modal-open {
    ================================ */
 .modal-buttons {
   display: flex;
-  gap: 15px;
+  gap: 10%;
   justify-content: center;
   margin-top: 25px;
 }
@@ -1332,6 +1334,7 @@ body.modal-open {
 
   .country-dropdown-container.country-compact {
     width: 100%;
+    
   }
   .place-dropdown-container.place-wide .place-dropdown-menu {
     top: calc(100% + 45px); /* Account for search input height */
@@ -1951,6 +1954,8 @@ body.modal-open {
     transform: scale(1.05);
   }
 
+  
+
   /* ================================
    RESPONSIVE DESIGN
    ================================ */
@@ -2044,7 +2049,7 @@ body.modal-open {
     .country-compact-size,
     .place-wide-size {
       height: 48px;
-      min-height: 48px;
+      min-height: 52px;
       font-size: 13px;
     }
   }
@@ -2104,13 +2109,13 @@ body.modal-open {
   }
 
   .chatbot-container {
-    padding: 4px;
+    padding: 20px;
   }
 
   .birth-details-modal,
   .waiting-list-modal {
-    width: 95%;
-    padding: 20px;
+    width: 100%;
+    padding: 10px 15px;
   }
 
   .modal-title,
@@ -7756,7 +7761,7 @@ select.profile-input option {
   flex-direction: column;
   font-family: "Inter", "Segoe UI", Arial, sans-serif;
   color: white;
-  padding: 8px;
+  padding: 20px;
   box-sizing: border-box;
   overflow: hidden;
   z-index: 1;
@@ -8268,8 +8273,9 @@ select.profile-input option {
 /* ✅ INPUT AREA */
 .input-area {
   display: flex;
+  position: relative;
   gap: 8px;
-  padding: 8px;
+  padding: 10px;
   background: rgba(255, 255, 255, 0.1);
   border-radius: 25px;
   border: 1px solid rgba(255, 255, 255, 0.2);
@@ -8414,7 +8420,7 @@ select.profile-input option {
   }
 
   .chatbot-container {
-    padding: 6px;
+    padding: 20px;
     gap: 6px;
   }
 
@@ -8987,9 +8993,16 @@ select.profile-input option {
 }
 
 .btn-icon {
-  font-size: 20px;
+  font-size: 30px;
+
 }
 
+.btn-icon a {
+ text-decoration: none;
+ color: white;
+ font-size: 30px;
+  
+}
 /* ✅ SECURITY INFO */
 .security-info {
   display: flex;
@@ -10917,7 +10930,7 @@ select.profile-input option {
 
 .btn-primary,
 .btn-secondary {
-  padding: 15px 30px;
+  padding: 12px 15px;
   border-radius: 12px;
   font-size: 16px;
   font-weight: 600;
@@ -10926,7 +10939,7 @@ select.profile-input option {
   display: flex;
   align-items: center;
   gap: 10px;
-  min-width: 180px;
+  min-width: relative;
   justify-content: center;
 }
 
@@ -11389,12 +11402,9 @@ select.profile-input option {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.75rem;
-  padding: 1.125rem;
   border: none;
   border-radius: 14px;
   font-weight: 600;
-  font-size: 0.95rem;
   cursor: pointer;
   transition: all 0.3s ease;
   text-decoration: none;
@@ -11889,12 +11899,13 @@ select.profile-input option {
 }
 
 .btn-icon {
-  font-size: 18px;
+  font-size: 20px;
 }
 
 .btn-text {
   font-size: 14px;
 }
+
 
 /* Responsive */
 @media (max-width: 768px) {
@@ -12327,12 +12338,41 @@ html {
    ======================================== */
 
 .profile-page-container {
-  padding-top: 2rem;
-  padding-bottom: 1rem;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 105vh;
-  overflow: hidden;
-  overflow-y: hidden;
+  padding-top: 4rem;
+    padding-bottom: 1rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+ 
 }
+
+
+.contact-section{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    margin: 10px;
+  }
+  .contact-btn{
+    margin: 10px; 
+    padding: 10px;
+    border: 2px solid #ffa500;
+    border-radius: 20px;
+  }
+
+
+  .contact-btn a {
+    text-decoration: none;
+    color: green;
+    font-size: 15px;
+    margin-right: 10px;
+}
+
+ /*  .fa-x-twitter {
+  font-size: 2rem;
+  color: black; or #1DA1F2 for classic Twitter blue 
+  margin: 0 10px;
+  fill: black;
+} */
