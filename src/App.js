@@ -25,6 +25,7 @@ import MoonTracker from './components/MoonTracker';
 import BookPooja from './components/BookPooja';
 import Refer from './components/refer';
 import Profile from './components/ProfileModal';
+import Feedback from './components/Feedback';
 
 import './App.css';
 
@@ -64,6 +65,7 @@ const Layout = ({ children }) => {
       '/pooja',
       '/refer',
       '/profile',
+      '/feedback'
     ]);
 
     if (!validPaths.has(location.pathname)) {
@@ -126,6 +128,7 @@ function App() {
               <Route path="/pooja" element={<ProtectedRoute><BookPooja /></ProtectedRoute>} />
               <Route path="/refer" element={<ProtectedRoute><Refer /></ProtectedRoute>} />
               <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+              <Route path="/feedback" element={<ProtectedRoute><Feedback /></ProtectedRoute>} />
 
               {/* Fallback route */}
               <Route path="*" element={<Navigate to="/home" replace />} />

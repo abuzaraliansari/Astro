@@ -82,7 +82,7 @@ function Header() {
       // '/kundli': 'Kundli',
       //'/horoscope': 'Horoscope',
       //'/submuhrat': 'Submuhrat',
-      '/call': 'Call Guru',
+      '/call': 'Appointment',
       //'/pooja': 'Pooja',
       //'/moon': 'Moon Tracker'
     };
@@ -98,8 +98,10 @@ function Header() {
     //{ path: '/submuhrat', label: 'Submuhrat' },
     //{ path: '/moon', label: 'Moon Tracker' },
     //{ path: '/pooja', label: 'Pooja' },
-    { path: '/call', label: 'Schedule' },
-    { path: '/refer', label: 'Refer' }
+    { path: '/call', label: 'Appointment' },
+    { path: '/refer', label: 'Refer' },
+    { path: '/feedback', label: 'Feedback' }
+
   ];
 
   // Religion options

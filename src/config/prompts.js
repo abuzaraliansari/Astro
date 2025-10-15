@@ -57,32 +57,73 @@ const PROMPTS = {
     }
   },
   
+    // ✅ Message Type Codes
+  messageTypes: {
+    FH: 'FreeHoroscope',    
+    FLUP: 'followup',       
+    RM: 'remedy',             
+    TL: 'technical',     
+    NQ: 'New'   
+  },
   // Languages with display names and placeholders
   languages: {
     ENGLISH: {
       INSTRUCTION: "Respond in clear English only. Use simple, easy-to-understand words.",
       DISPLAY_NAME: "English",
-      PLACEHOLDER: "Your stars hold the answers ✨ Ask about life, career, love, health, or destiny – and get personalized guidance now!"
+      PLACEHOLDER: "Your stars hold the answers Ask about life, career, love, health, or destiny – and get personalized guidance now!"
     },
     HINDI: {
       INSTRUCTION: "Respond in pure Hindi only. Use Devanagari script. हिंदी में जवाब दें।",
       DISPLAY_NAME: "हिंदी (Hindi)",
-      PLACEHOLDER: "स्वागत है ✨ अपना ज्योतिष से जुड़ा प्रश्न पूछिए, आइए देखें सितारे क्या संकेत दे रहे हैं।"
+      PLACEHOLDER: "स्वागत है अपना ज्योतिष से जुड़ा प्रश्न पूछिए, आइए देखें सितारे क्या संकेत दे रहे हैं।"
     },
     HINGLISH: {
       INSTRUCTION: "Respond in Hinglish (Hindi written in English). Mix Hindi words with English script.",
       DISPLAY_NAME: "Hinglish (Hindi + English)",
-      PLACEHOLDER: "Swagat hai ✨ Apna astrology se related question poochhiye, chaliye dekhte hain sitare kya batate hain."
+      PLACEHOLDER: "Swagat hai Apna astrology se related question poochhiye, chaliye dekhte hain sitare kya batate hain."
     },
     TAMIL: {
       INSTRUCTION: "தமிழில் மட்டும் பதிலளிக்கவும். தெளிவான மற்றும் எளிய சொற்களை பயன்படுத்தவும்.",
       DISPLAY_NAME: "தமிழ் (Tamil)",
-      PLACEHOLDER: "வணக்கம் ✨ உங்கள் ஜோதிட கேள்வியை கேளுங்கள்"
+      PLACEHOLDER: "வணக்கம் உங்கள் ஜோதிட கேள்வியை கேளுங்கள்"
     },
     TELUGU: {
       INSTRUCTION: "దయచేసి తెలుగులో మాత్రమే సమాధానం ఇవ్వండి. సరళమైన భాషను ఉపయోగించండి.",
       DISPLAY_NAME: "తెలుగు (Telugu)",
-      PLACEHOLDER: "స్వాగతం ✨ మీ జ్యోతిష్య ప్రశ్న అడగండి"
+      PLACEHOLDER: "స్వాగతం మీ జ్యోతిష్య ప్రశ్న అడగండి"
+    }
+  },
+
+  buttonLabels: {
+    ENGLISH: {
+      FOLLOWUP: 'Follow-up',
+      REMEDIES: 'Remedies',
+      TECHNICAL: 'Technical',
+      NEW: 'New Question'
+    },
+    HINDI: {
+      FOLLOWUP: 'अनुवर्ती प्रश्न',
+      REMEDIES: 'उपाय',
+      TECHNICAL: 'तकनीकी विश्लेषण',
+      NEW: 'नया प्रश्न'
+    },
+    HINGLISH: {
+      FOLLOWUP: 'Follow-up',
+      REMEDIES: 'Upaay',
+      TECHNICAL: 'Technical',
+      NEW: 'Naya Sawal'
+    },
+    TAMIL: {
+      FOLLOWUP: 'தொடர் கேள்வி',
+      REMEDIES: 'தீர்வுகள்',
+      TECHNICAL: 'தொழில்நுட்ப பகுப்பாய்வு',
+      NEW: 'புதிய கேள்வி'
+    },
+    TELUGU: {
+      FOLLOWUP: 'తదుపరి ప్రశ్న',
+      REMEDIES: 'పరిష్కారాలు',
+      TECHNICAL: 'సాంకేతిక విశ్లేషణ',
+      NEW: 'కొత్త ప్రశ్న'
     }
   },
 
@@ -175,11 +216,19 @@ const PROMPTS = {
   },
   
    greetings: {
-    ENGLISH: "✨ Welcome! Your cosmic journey with Guru ji begins... ✨",
-    HINDI: "✨ स्वागत है! आपकी ज्योतिषीय यात्रा गुरु जी के साथ शुरू होती है... ✨",
-    HINGLISH: "✨ Namaste! Aapki cosmic journey Guru ji ke saath shuru hoti hai... ✨"
+    ENGLISH: "Welcome! Your cosmic journey with Guru ji begins... ✨",
+    HINDI: "स्वागत है! आपकी ज्योतिषीय यात्रा गुरु जी के साथ शुरू होती है... ✨",
+    HINGLISH: "Namaste! Aapki cosmic journey Guru ji ke saath shuru hoti hai... ✨"
   },
-  
+
+  // Add this after the greetings section
+welcome: {
+  ENGLISH: "Welcome, {name}! 🌌 Your personalized cosmic journey begins here with Astro AI – guided by wisdom, powered by technology.",
+  HINDI: "स्वागत है, {name} जी! 🌠 आपकी व्यक्तिगत ज्योतिषीय यात्रा अब Astro AI के साथ आरंभ होती है – ज्ञान और तकनीक का संगम।",
+  HINGLISH: "Namaste {name} Ji! 🌟 Aapki personalized cosmic journey ab shuru hoti hai Astro AI ke saath – jahaan technology milti hai Guru ji ke gyaan se."
+},
+
+
   // Template prompts
   template: {
     HOROSCOPE_PROMPT: "Provide today's horoscope in 25-30 words. Keep positive, actionable.",

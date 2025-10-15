@@ -607,7 +607,7 @@ console.log('📧 Booking email data:', emailData);
   return (
     <div className="call-container">
       <div className="call-header">
-        <h1 className="page-title">📞 Schedule With Guru Ji</h1>
+        <h1 className="page-title">📞 Book Appointment With Guru Ji</h1>
         <p className="page-subtitle">Direct personal consultation with expert astrologers</p>
       </div>
 

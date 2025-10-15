@@ -99,7 +99,7 @@ function Home() {
           <div className="service-content">
             <div className="credits-label"
             style={{fontSize: '1rem', fontWeight: 'bold',color: '#FFD700'}}
-            >Take Appointment</div>
+            >Book Appointment</div>
             <div className="bonus-credits"
             style={{fontSize: '0.7rem', color: 'white', backgroundColor: '#bab9b942'}}
             >Schedule Your Personalized Astro Guidance</div>

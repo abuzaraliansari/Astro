@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // ✅ STRICT: Force local backend only - NO direct API calls
-const BACKEND_URL = process.env.REACT_APP_BACKEND || 'http://localhost:4000';
+const BACKEND_URL = process.env.REACT_APP_BACKEND || 'https://babralauatapi-d9abe9h8frescchd.centralindia-01.azurewebsites.net';
 
 console.log('🔧 API Configuration:', {
   backendUrl: BACKEND_URL,
@@ -195,9 +195,9 @@ export const getUserPreferences = (userId) =>
 export const updateUserProfile = async (userId, profileData) => {
   try {
     console.log('📤 Updating user profile:', userId, profileData);
-    
+
     const response = await api.put(`/astro/profile/${userId}`, profileData);
-    
+
     console.log('✅ Profile updated:', response.data);
     return response;
   } catch (error) {
@@ -210,9 +210,9 @@ export const updateUserProfile = async (userId, profileData) => {
 export const getUserProfile = async (userId) => {
   try {
     console.log('📥 Fetching user profile:', userId);
-    
+
     const response = await api.get(`/astro/profile/${userId}`);
-    
+
     console.log('✅ Profile fetched:', response.data);
     return response;
   } catch (error) {
@@ -233,13 +233,14 @@ export const getCreditHistory = (userId) => api.get(`/astro/credits/${userId}/hi
 // Get user credits (unchanged)
 export const getUserCredits = (userId) => api.get(`/astro/credits/${userId}`);
 
-// ✅ NEW: Chat History API Functions
-// ✅ UPDATED: Accept both user message and AI prompt
-export const saveChatMessage = async (userId, userMessage, profile, settings) => {
+export const saveChatMessage = async (userId, userMessage, profile, settings, aiContextMessage = null, queryProfile = null) => {
   try {
     console.log('💬 SAVING CHAT MESSAGE:', {
       userId,
       userMessageLength: userMessage.length,
+      hasAIContext: !!aiContextMessage,
+      hasQueryProfile: !!queryProfile,
+      queryProfileName: queryProfile?.name,
       profile,
       settings
     });
@@ -247,8 +248,10 @@ export const saveChatMessage = async (userId, userMessage, profile, settings) =>
     const response = await api.post('/astro/chat/save-message', {
       userId,
       userMessage,
+      aiContextMessage,
       profile,
-      settings
+      settings,
+      queryProfile  // ✅ NEW: Include query profile
     }, {
       timeout: 30000
     });
@@ -259,6 +262,7 @@ export const saveChatMessage = async (userId, userMessage, profile, settings) =>
     throw error;
   }
 };
+
 
 // Get quick AI response WITHOUT saving to database
 export const getQuickResponse = async (userMessage, profile, settings) => {
@@ -1174,7 +1178,165 @@ export const sendEmailNotification = async (template, recipientEmail, data) => {
 };
 
 
+export const submitFeedback = async (formData) => {
+  try {
+    console.log('💬 SUBMITTING FEEDBACK THROUGH BACKEND');
 
+    const response = await api.post('/astro/feedback/submit', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      },
+      timeout: 60000 // 60 seconds for file uploads
+    });
+
+    console.log('✅ FEEDBACK SUBMITTED:', {
+      success: response.data.success,
+      feedbackId: response.data.feedbackId,
+      attachmentsCount: response.data.attachmentsCount
+    });
+
+    return response;
+  } catch (error) {
+    console.error('❌ SUBMIT FEEDBACK ERROR:', error);
+    if (error.code === 'ECONNREFUSED' || error.code === 'ERR_NETWORK') {
+      throw new Error('❌ Backend server is not running! Please start your API server.');
+    }
+    throw error;
+  }
+};
+
+/**
+ * Get all feedback (Admin)
+ * @param {string} status - Filter by status (pending, reviewed, resolved)
+ * @param {string} type - Filter by type (feedback, issue)
+ * @param {number} limit - Number of records to fetch
+ * @param {number} offset - Offset for pagination
+ * @returns {Promise} Feedback list
+ */
+export const getAllFeedback = async (status = null, type = null, limit = 50, offset = 0) => {
+  try {
+    console.log('📜 FETCHING ALL FEEDBACK THROUGH BACKEND:', {
+      status,
+      type,
+      limit,
+      offset
+    });
+
+    const params = new URLSearchParams();
+    if (status) params.append('status', status);
+    if (type) params.append('type', type);
+    params.append('limit', limit.toString());
+    params.append('offset', offset.toString());
+
+    const response = await api.get(`/astro/feedback/all?${params.toString()}`);
+
+    console.log('✅ ALL FEEDBACK LOADED:', {
+      success: response.data.success,
+      count: response.data.count
+    });
+
+    return response;
+  } catch (error) {
+    console.error('❌ GET ALL FEEDBACK ERROR:', error);
+    if (error.code === 'ECONNREFUSED' || error.code === 'ERR_NETWORK') {
+      throw new Error('❌ Backend server is not running! Please start your API server.');
+    }
+    throw error;
+  }
+};
+
+/**
+ * Get feedback by user
+ * @param {number} userId - User ID
+ * @returns {Promise} User's feedback list
+ */
+export const getUserFeedback = async (userId) => {
+  try {
+    console.log('📜 FETCHING USER FEEDBACK THROUGH BACKEND:', { userId });
+
+    const response = await api.get(`/astro/feedback/user/${userId}`);
+
+    console.log('✅ USER FEEDBACK LOADED:', {
+      success: response.data.success,
+      count: response.data.count
+    });
+
+    return response;
+  } catch (error) {
+    console.error('❌ GET USER FEEDBACK ERROR:', error);
+    if (error.code === 'ECONNREFUSED' || error.code === 'ERR_NETWORK') {
+      throw new Error('❌ Backend server is not running! Please start your API server.');
+    }
+    throw error;
+  }
+};
+
+/**
+ * Update feedback status (Admin)
+ * @param {number} feedbackId - Feedback ID
+ * @param {string} status - New status (pending, reviewed, resolved)
+ * @param {number} modifiedBy - User ID who is updating
+ * @returns {Promise} Update result
+ */
+export const updateFeedbackStatus = async (feedbackId, status, modifiedBy) => {
+  try {
+    console.log('🔄 UPDATING FEEDBACK STATUS THROUGH BACKEND:', {
+      feedbackId,
+      status,
+      modifiedBy
+    });
+
+    const response = await api.put(`/astro/feedback/status/${feedbackId}`, {
+      status,
+      modifiedBy
+    });
+
+    console.log('✅ FEEDBACK STATUS UPDATED:', {
+      success: response.data.success,
+      message: response.data.message
+    });
+
+    return response;
+  } catch (error) {
+    console.error('❌ UPDATE FEEDBACK STATUS ERROR:', error);
+    if (error.code === 'ECONNREFUSED' || error.code === 'ERR_NETWORK') {
+      throw new Error('❌ Backend server is not running! Please start your API server.');
+    }
+    throw error;
+  }
+};
+
+/**
+ * Delete feedback (Soft delete)
+ * @param {number} feedbackId - Feedback ID
+ * @param {number} modifiedBy - User ID who is deleting
+ * @returns {Promise} Delete result
+ */
+export const deleteFeedback = async (feedbackId, modifiedBy) => {
+  try {
+    console.log('🗑️ DELETING FEEDBACK THROUGH BACKEND:', {
+      feedbackId,
+      modifiedBy
+    });
+
+    const response = await api.delete(`/astro/feedback/${feedbackId}`, {
+      data: { modifiedBy }
+    });
+
+    console.log('✅ FEEDBACK DELETED:', {
+      success: response.data.success,
+      message: response.data.message
+    });
+
+    return response;
+  } catch (error) {
+    console.error('❌ DELETE FEEDBACK ERROR:', error);
+    if (error.code === 'ECONNREFUSED' || error.code === 'ERR_NETWORK') {
+      throw new Error('❌ Backend server is not running! Please start your API server.');
+    }
+    throw error;
+  }
+};
 
 
 
@@ -1238,5 +1400,10 @@ export default {
   getSpendTypes,
   spendCredits,
   sendEmailNotification,
+  submitFeedback,
+  getAllFeedback,
+  getUserFeedback,
+  updateFeedbackStatus,
+  deleteFeedback,
   api
 };

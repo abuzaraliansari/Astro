@@ -12,7 +12,19 @@ function ChatBot() {
   const effectRan = useRef(false);
   const searchTimeoutRef = useRef(null);
   const placeInputRef = useRef(null);
-  
+  const suggestionBoxRef = useRef(null);
+  const isInitializing = useRef(false);
+  const settingsRef = useRef(null);
+  const responseTypeRef = useRef(null);
+  const [questionCount, setQuestionCount] = useState(0);
+  const [showFeedbackNotification, setShowFeedbackNotification] = useState(false);
+  const [showTypeWarning, setShowTypeWarning] = useState(false);
+  const [isFirstMessage, setIsFirstMessage] = useState(true);
+  const messagesEndRef = useRef(null);
+  const [lastMessageType, setLastMessageType] = useState(null);
+  const analysisButtonsRef = useRef(null);
+
+
 
   const [hasInitialized, setHasInitialized] = useState(false);
   const [messages, setMessages] = useState([]);
@@ -20,15 +32,23 @@ function ChatBot() {
   const [inputValue, setInputValue] = useState('');
   const [showInsufficientModal, setShowInsufficientModal] = useState(false);
   const [requiredCredits, setRequiredCredits] = useState(0);
+  const [currentQuestionType, setCurrentQuestionType] = useState('New');
+  const [lastUserMessage, setLastUserMessage] = useState('');
+  const [lastAssistantMessage, setLastAssistantMessage] = useState('');
+  const [selectedAnalysisType, setSelectedAnalysisType] = useState(null); // default to "New"
+  const [showResponseTypeDropdown, setShowResponseTypeDropdown] = useState(false);
+
+
+
 
 
   const [selectedLanguage, setSelectedLanguage] = useState(
-    user?.settings?.Language || 'ENGLISH'  // ✅ Use settings.Language from login
+    user?.settings?.Language || 'ENGLISH'
   );
   const [userSettings, setUserSettings] = useState(null);
 
   const [responseType, setResponseType] = useState(() => {
-    // Load from user settings in DB, default to NORMAL
+
     const savedType = user?.settings?.responseType || 'NORMAL';
     console.log('🎬 INITIAL responseType from DB:', savedType);
     return savedType;
@@ -154,44 +174,10 @@ function ChatBot() {
     return "🔮 Guru ji is consulting the cosmic energies... ✨";
   };
 
-
-  // ✅ NEW: Fetch latest preferred language from backend
-  /*
- const fetchPreferredLanguage = async () => {
-    if (!user?.id) return;
-
-    try {
-      console.log('🌍 Fetching latest preferred language from backend...');
-      const response = await getUserPreferences(user.id);
-
-      if (response.data?.preferred_language) {
-        const fetchedLanguage = response.data.preferred_language;
-        console.log('✅ Fetched preferred language from backend:', fetchedLanguage);
-        setSelectedLanguage(fetchedLanguage);
-
-        // Optionally save to localStorage as well
-        if (user?.id) {
-          localStorage.setItem(`astroguru_language_${user.id}`, fetchedLanguage);
-        }
-      }
-    } catch (error) {
-      console.error('❌ Failed to fetch preferred language:', error);
-      // Fallback to default if fetch fails
-      setSelectedLanguage('ENGLISH');
-    }
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
-*/
-  // ✅ UPDATED: Fetch preferred language on component mount
-  // ✅ NEW: Fetch settings on component mount
-  // ✅ NEW with proper dependency array
-  // ✅ UPDATED: Fetch settings on component mount - ALWAYS RUN FIRST
 
-
-
-  // ✅ UPDATED: Handle language selection with backend update
-
-  // ✅ NEW: Update language setting in database
-  // ✅ UPDATED: Update language setting with better flow
   const handleLanguageSelect = async (langKey) => {
     if (!userSettings?.SettingId) return;
 
@@ -572,7 +558,9 @@ function ChatBot() {
 
   ];
 
-
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   // Load settings on mount
   useEffect(() => {
@@ -581,48 +569,70 @@ function ChatBot() {
     }
   }, [user?.userId]);
 
-  // Initialize chat history or generate horoscope
-// Track if initialization is in progress
-const isInitializing = useRef(false);
-
-// Initialize chat history or generate horoscope
-useEffect(() => {
-  if (user?.userId && userSettings && !hasInitialized && !isInitializing.current) {
-    const initialize = async () => {
-      // ✅ Set flag immediately to prevent double execution
-      isInitializing.current = true;
-      
-      try {
-        const hasHistory = await loadChatHistory();
-        
-        if (!hasHistory) {
-          await generateFreeHoroscope();
-        }
-        
-        setHasInitialized(true);
-      } catch (error) {
-        console.error('❌ Initialization error:', error);
-        isInitializing.current = false; // Reset on error
-      }
-    };
-    
-    initialize();
-  }
-}, [user?.userId, userSettings, hasInitialized]);
-
-
-  // Close language dropdown on outside click
+  // Close settings on outside click
   useEffect(() => {
     const handleClickOutside = (event) => {
-      const languageDropdown = document.querySelector('.language-dropdown-container');
-      if (languageDropdown && !languageDropdown.contains(event.target)) {
-        setShowLanguageDropdown(false);
+      if (settingsRef.current && !settingsRef.current.contains(event.target)) {
+        setShowSettings(false);
       }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+
+  // Close response type dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (responseTypeRef.current && !responseTypeRef.current.contains(event.target)) {
+        setShowResponseTypeDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+
+  // Initialize chat history or generate horoscope
+  useEffect(() => {
+    if (user?.userId && userSettings && !hasInitialized && !isInitializing.current) {
+      const initialize = async () => {
+        // ✅ Set flag immediately to prevent double execution
+        isInitializing.current = true;
+
+        try {
+          const hasHistory = await loadChatHistory();
+
+          if (!hasHistory) {
+            await generateFreeHoroscope();
+          }
+
+          setHasInitialized(true);
+        } catch (error) {
+          console.error('❌ Initialization error:', error);
+          isInitializing.current = false; // Reset on error
+        }
+      };
+
+      initialize();
+    }
+  }, [user?.userId, userSettings, hasInitialized]);
+
+
+  // Close suggestions on outside click
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (suggestionBoxRef.current && !suggestionBoxRef.current.contains(event.target)) {
+        setFilteredSuggestions([]);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
 
   // ✅ VALIDATION FUNCTIONS (same as Auth.js)
   const validateBirthDetails = () => {
@@ -735,6 +745,32 @@ useEffect(() => {
     }, 300);
   };
 
+  // Close suggestions on outside click
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (suggestionBoxRef.current && !suggestionBoxRef.current.contains(event.target)) {
+        setFilteredSuggestions([]);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+
+  // Close suggestions on outside click
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (suggestionBoxRef.current && !suggestionBoxRef.current.contains(event.target)) {
+        setFilteredSuggestions([]);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+
   const handlePlaceSelect = (place) => {
     try {
       let formattedPlace = '';
@@ -772,6 +808,33 @@ useEffect(() => {
       setPlaceSuggestions([]);
     }
   };
+
+  // ═══════════════════════════════════════════════════════════════════
+  // SUGGESTION BOX HANDLERS
+  // ═══════════════════════════════════════════════════════════════════
+
+  // Handle input change with suggestions
+  const handleInputWithSuggestions = (e) => {
+    const value = e.target.value;
+    setInputValue(value);
+
+    // Filter suggestions based on input
+    if (value.trim().length >= 2) {
+      const filtered = allSuggestions.filter(suggestion =>
+        suggestion.toLowerCase().includes(value.toLowerCase())
+      );
+      setFilteredSuggestions(filtered.slice(0, 10)); // Show max 10 suggestions
+    } else {
+      setFilteredSuggestions([]);
+    }
+  };
+
+  // Handle suggestion click
+  const handleSuggestionClick = (suggestion) => {
+    setInputValue(suggestion);
+    setFilteredSuggestions([]);
+  };
+
 
   // ✅ CLOCK HELPER FUNCTIONS (same as Auth.js)
   const getHourAngle = () => {
@@ -937,26 +1000,47 @@ useEffect(() => {
       if (response.data.success && response.data.data) {
         const groupedMessages = response.data.data;
         const allMessages = [];
+        let lastMsgType = null;
 
         Object.keys(groupedMessages).sort().forEach(dateKey => {
-          groupedMessages[dateKey].forEach(msg => {
-            allMessages.push({
-              message: msg.message,
-              direction: msg.direction,
-              sender: msg.sender,
-              timestamp: msg.timestamp
+          groupedMessages[dateKey]
+            .reverse() // ✅ Reverse to show oldest first (Question → Response)
+            .forEach(msg => {
+              allMessages.push({
+                message: msg.message,
+                direction: msg.direction,
+                sender: msg.sender,
+                timestamp: msg.timestamp,
+                messageType: msg.messageType
+              });
             });
-          });
         });
+
 
         if (allMessages.length > 0) {
           console.log(`✅ Loaded ${allMessages.length} messages`);
           setMessages(allMessages);
-          return true; // Has history
+
+          // Extract last user and assistant messages
+          const userMessages = allMessages.filter(m => m.sender === 'user');
+          const assistantMessages = allMessages.filter(m => m.sender === 'assistant');
+
+          if (userMessages.length > 0) {
+            setLastUserMessage(userMessages[userMessages.length - 1].message);
+          }
+          if (assistantMessages.length > 0) {
+            setLastAssistantMessage(assistantMessages[assistantMessages.length - 1].message);
+          }
+
+          // ✅ Set message type from last message or default to NQ
+          setLastMessageType(lastMsgType || PROMPTS.messageTypes.NQ);
+          console.log('✅ Set lastMessageType to:', lastMsgType || 'NQ');
+
+          return true;
         }
       }
 
-      return false; // No history
+      return false;
     } catch (error) {
       console.error('❌ Error loading chat history:', error);
       return false;
@@ -980,7 +1064,7 @@ useEffect(() => {
       };
 
       const messageSettings = {
-        questionType: 'general',
+        questionType: 'New',
         language: selectedLanguage,
         maxResponseLength: 50
       };
@@ -993,19 +1077,30 @@ useEffect(() => {
       );
 
       if (response.success) {
-        const greeting = PROMPTS.greetings[selectedLanguage] || PROMPTS.greetings.ENGLISH;
+        const userName = user?.full_name || user?.given_name || 'Beta';
+        const welcomeMessage = (PROMPTS.welcome[selectedLanguage] || PROMPTS.welcome.ENGLISH)
+          .replace('{name}', userName);
+        const fullMessage = `${welcomeMessage}\n\n${response.reply}`;
+
         push({
-          message: `${greeting}\n\n${response.reply}`,
+          message: fullMessage,
           direction: 'incoming',
           sender: 'assistant',
           timestamp: new Date().toISOString()
         });
+
+        // Track for analysis buttons
+        setLastUserMessage('Daily Horoscope');
+        setLastAssistantMessage(fullMessage);
+        //setIsFirstMessage(true);
+        setLastMessageType(PROMPTS.messageTypes.FH);
       }
+
     } catch (error) {
       console.error('❌ Error generating horoscope:', error);
-      const greeting = PROMPTS.greetings[selectedLanguage] || PROMPTS.greetings.ENGLISH;
+      const welcomeMessage = PROMPTS.welcomeMessage[selectedLanguage] || PROMPTS.welcomeMessage.ENGLISH;
       push({
-        message: greeting,
+        message: welcomeMessage,
         direction: 'incoming',
         sender: 'assistant',
         timestamp: new Date().toISOString()
@@ -1021,6 +1116,139 @@ useEffect(() => {
       localStorage.removeItem(`astroguru_draft_${user.id}`);
     }
   };
+
+  // Get credits based on response type
+  const getCreditsByResponseType = (responseTypeValue) => {
+    switch (responseTypeValue) {
+      case 'QUICK':
+        return { spendTypeId: 1, creditsRequired: 10 };
+      case 'DETAILED':
+        return { spendTypeId: 2, creditsRequired: 15 };
+      case 'NORMAL':
+      default:
+        return { spendTypeId: 3, creditsRequired: 20 };
+    }
+  };
+  // Handle analysis button clicks
+  const handleAnalysisClick = async (analysisType) => {
+    console.log(`🔍 Analysis button clicked: ${analysisType}`);
+
+    // For 'New' type, clear all history and start fresh
+    if (analysisType === 'New') {
+      setMessages([]);
+      setLastUserMessage('');
+      setLastAssistantMessage('');
+      setCurrentQuestionType('New');
+      console.log('🗑️ Chat history cleared for New question');
+      return;
+    }
+
+    // Build context message based on analysis type
+    let contextMessage = lastUserMessage; // Default: use last user message
+
+    if (analysisType === 'followup') {
+      contextMessage = `Follow-up on: "${lastUserMessage}" - Previous response: "${lastAssistantMessage.substring(0, 100)}..."`;
+    } else if (analysisType === 'detailed') {
+      contextMessage = `Provide detailed planetary analysis for: "${lastUserMessage}"`;
+    } else if (analysisType === 'remedy') {
+      contextMessage = `What remedies do you recommend for: "${lastUserMessage}"?`;
+    } else if (analysisType === 'technical') {
+      contextMessage = `Technical chart analysis for: "${lastUserMessage}"`;
+    }
+
+    // Show the context message as user message
+    const userMessage = {
+      message: contextMessage,
+      direction: 'outgoing',
+      sender: 'user',
+      timestamp: new Date().toISOString()
+    };
+    push(userMessage);
+
+    setIsTyping(true);
+
+    try {
+      // Build profile
+      const profile = tempBirthProfile || user;
+      const birthProfile = {
+        name: profile?.fullname || profile?.full_name || profile?.givenname || 'User',
+        dob: profile?.birthdate || profile?.birth_date || 'unknown',
+        time: profile?.birthtime || profile?.birth_time || 'unknown',
+        timezone: profile?.timezone || 'IST',
+        place: profile?.birthplace || profile?.birth_place || 'unknown',
+        latLong: profile?.latitude && profile?.longitude
+          ? `${profile.latitude}, ${profile.longitude}`
+          : 'unknown',
+        religion: profile?.religion || 'Hindu'
+      };
+
+      // Get max response length from current responseType setting
+      const maxResponseLength = PROMPTS.responseLength[responseType]?.maxWords || 150;
+
+      const messageSettings = {
+        questionType: analysisType, // This will be 'followup', 'detailed', 'remedy', 'technical'
+        language: selectedLanguage,
+        maxResponseLength: maxResponseLength
+      };
+
+      console.log('📤 Sending analysis request:', { contextMessage, analysisType, messageSettings });
+
+      // Get credits based on current responseType (QUICK/NORMAL/DETAILED)
+      const { spendTypeId, creditsRequired } = getCreditsByResponseType(responseType);
+
+      if (user.credits < creditsRequired) {
+        setRequiredCredits(creditsRequired);
+        setShowInsufficientModal(true);
+        setIsTyping(false);
+        setMessages(prev => prev.slice(0, -1));
+        return;
+      }
+
+      // Send message
+      const response = await saveChatMessage(
+        user.id,
+        contextMessage,
+        birthProfile,
+        messageSettings,
+        contextMessage
+      );
+
+      if (response.success) {
+        const aiMessage = {
+          message: response.reply,
+          direction: 'incoming',
+          sender: 'assistant',
+          timestamp: new Date().toISOString()
+        };
+        push(aiMessage);
+
+        // Update last messages
+        setLastUserMessage(contextMessage);
+        setLastAssistantMessage(response.reply);
+
+        // Deduct credits
+        await spendCredits(
+          user.userId,
+          spendTypeId,
+          `${analysisType} analysis: ${contextMessage.substring(0, 50)}`,
+          null
+        );
+
+        await refreshCredits();
+      }
+    } catch (error) {
+      console.error('❌ Analysis error:', error);
+      push({
+        message: 'Sorry, something went wrong. Please try again.',
+        direction: 'incoming',
+        sender: 'assistant',
+        timestamp: new Date().toISOString()
+      });
+    } finally {
+      setIsTyping(false);
+    }
+  };
+
 
 
 
@@ -1089,104 +1317,163 @@ useEffect(() => {
 
     const originalUserMessage = inputValue.trim();
 
+    // ✅ Auto-select "New" if no type selected and no previous chat
+    let messageType = selectedAnalysisType;
+    if (!messageType) {
+      if (!lastMessageType || lastMessageType === PROMPTS.messageTypes.FH) {
+        // First message or after free horoscope - auto-select "New"
+        messageType = PROMPTS.messageTypes.NQ;
+        setSelectedAnalysisType(messageType);
+      } else {
+        if (analysisButtonsRef.current) {
+          analysisButtonsRef.current.classList.add('highlight');
+          setTimeout(() => {
+            analysisButtonsRef.current?.classList.remove('highlight');
+          }, 3000);
+        }
+
+        // Scroll to buttons
+        analysisButtonsRef.current?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center'
+        });
+
+        // Have previous chat but no type selected - show alert
+        alert('⚠️ Please select a message type (Follow-up, Remedies, Technical, or New Question) before asking Guru Ji');
+        return;
+      }
+    }
+
+    // Build the message based on selected analysis type
+    let finalMessage = originalUserMessage;
+
+    // For followup, include chat history context
+    if (messageType === PROMPTS.messageTypes.FLUP && lastUserMessage && lastAssistantMessage) {
+      finalMessage = `Previous Question: "${lastUserMessage}"
+Previous Response: "${lastAssistantMessage.substring(0, 200)}..."
+
+Follow-up Question: ${originalUserMessage}`;
+    }
+
+    // Show user's original message in chat
     const userMessage = {
       message: originalUserMessage,
       direction: 'outgoing',
       sender: 'user',
       timestamp: new Date().toISOString()
     };
-    push(userMessage);
 
-    // ✅ Use tempBirthProfile if exists, otherwise use user data
+    // If it's "New", clear chat first, then add message
+    if (messageType === PROMPTS.messageTypes.NQ) {
+      setMessages([userMessage]);
+    } else {
+      push(userMessage);
+    }
+
+    // Build profile
     const profile = tempBirthProfile || user;
-
-    // ✅ Build profile with proper field names
     const birthProfile = {
-      name: profile?.fullname || profile?.full_name || profile?.givenname || profile?.given_name || 'User',
+      name: profile?.fullname || profile?.full_name || profile?.givenname || 'User',
       dob: profile?.birthdate || profile?.birth_date || 'unknown',
       time: profile?.birthtime || profile?.birth_time || 'unknown',
       timezone: profile?.timezone || 'IST',
       place: profile?.birthplace || profile?.birth_place || 'unknown',
       latLong: profile?.latitude && profile?.longitude
         ? `${profile.latitude}, ${profile.longitude}`
-        : 'unknown'
+        : 'unknown',
+      religion: profile?.religion || 'Hindu'
     };
 
-    console.log('👤 Using profile:', profile);
-    console.log('📦 Birth profile:', birthProfile);
-
-
-    // Build settings
-    const maxResponseLength = PROMPTS.responseLength[responseType]?.maxWords || 150;
+    // Build settings - technical gets 250 words
+    const maxResponseLength = messageType === PROMPTS.messageTypes.TL
+      ? 250
+      : PROMPTS.responseLength[responseType]?.maxWords || 150;
 
     const messageSettings = {
-      questionType: 'general',
+      questionType: messageType,
       language: selectedLanguage,
       maxResponseLength: maxResponseLength
     };
 
-    console.log('📤 Sending:', { originalUserMessage, birthProfile, messageSettings });
+    console.log('📤 Sending:', {
+      originalUserMessage,
+      finalMessage,
+      messageType,
+      messageSettings
+    });
 
     setInputValue('');
     setIsTyping(true);
+    setFilteredSuggestions([]);
 
     try {
-      // Check credits
-      // Check credits based on CURRENT responseType state
-      let spendTypeId, creditsRequired;
-
-      if (responseType === 'QUICK') {
-        spendTypeId = 1;
-        creditsRequired = 10;
-      } else if (responseType === 'DETAILED') {
-        spendTypeId = 2;
-        creditsRequired = 15;
-      } else if (responseType === 'NORMAL') {
-        spendTypeId = 3;
-        creditsRequired = 20;
-      } else {
-        // Default to NORMAL
-        spendTypeId = 3;
-        creditsRequired = 20;
-      }
-
-      console.log(`💰 Credits check: responseType=${responseType}, spendTypeId=${spendTypeId}, required=${creditsRequired}`);
-
+      // Get credits based on current responseType
+      const { spendTypeId, creditsRequired } = getCreditsByResponseType(responseType);
 
       if (user.credits < creditsRequired) {
         setRequiredCredits(creditsRequired);
         setShowInsufficientModal(true);
         setIsTyping(false);
-        setMessages(prev => prev.slice(0, -1));
+
+        if (messageType === PROMPTS.messageTypes.NQ) {
+          setMessages([]);
+        } else {
+          setMessages(prev => prev.slice(0, -1));
+        }
         setInputValue(originalUserMessage);
         return;
       }
 
-      // Send message
+      // Send message with context
       const response = await saveChatMessage(
         user.id,
-        originalUserMessage,
+        finalMessage,
         birthProfile,
         messageSettings
       );
 
       if (response.success) {
-        push({
+        const aiMessage = {
           message: response.reply,
           direction: 'incoming',
           sender: 'assistant',
           timestamp: new Date().toISOString()
+        };
+
+        push(aiMessage);
+
+        // Track last messages and type
+        setLastUserMessage(originalUserMessage);
+        setLastAssistantMessage(response.reply);
+        setLastMessageType(messageType); // ✅ Track message type
+
+        // ✅ Increment question count and check for feedback notification
+        setQuestionCount(prev => {
+          const newCount = prev + 1;
+          console.log('📊 Question count:', newCount);
+
+          // Show feedback notification after 3 questions
+          if (newCount === 3) {
+            console.log('🎉 Showing feedback notification after 3 questions');
+            setShowFeedbackNotification(true);
+          }
+
+          return newCount;
         });
+
 
         // Deduct credits
         await spendCredits(
           user.userId,
           spendTypeId,
-          `Chat: ${originalUserMessage.substring(0, 50)}`,
+          `${messageType}: ${originalUserMessage.substring(0, 50)}`,
           null
         );
 
         await refreshCredits();
+
+        // ✅ Reset selection after sending
+        setSelectedAnalysisType(null);
       }
     } catch (error) {
       console.error('❌ Error:', error);
@@ -1200,6 +1487,149 @@ useEffect(() => {
       setIsTyping(false);
     }
   }
+
+  const handleDirectAnalysis = async (analysisType) => {
+    console.log(`🔍 Direct analysis: ${analysisType}`);
+
+    if (!lastUserMessage || !lastAssistantMessage) {
+      alert('⚠️ No previous conversation found to analyze. Please ask a question first.');
+      return;
+    }
+
+    setIsTyping(true);
+
+    try {
+      const profile = tempBirthProfile || user;
+      const birthProfile = {
+        name: profile?.fullname || profile?.full_name || profile?.givenname || 'User',
+        dob: profile?.birthdate || profile?.birth_date || 'unknown',
+        time: profile?.birthtime || profile?.birth_time || 'unknown',
+        timezone: profile?.timezone || 'IST',
+        place: profile?.birthplace || profile?.birth_place || 'unknown',
+        latLong: profile?.latitude && profile?.longitude
+          ? `${profile.latitude}, ${profile.longitude}`
+          : 'unknown',
+        religion: profile?.religion || 'Hindu'
+      };
+
+
+      const contextMessage = `Previous Question: "${lastUserMessage}"
+Previous Response: "${lastAssistantMessage.substring(0, 200)}..."
+
+Please provide ${analysisType === PROMPTS.messageTypes.RM ? 'specific remedies' : 'detailed technical analysis'} for the above.`;
+
+
+      const displayMessage = analysisType === PROMPTS.messageTypes.RM
+        ? 'Here are the remedies'
+        : 'Here is the technical analysis';
+
+
+      push({
+        message: analysisType === PROMPTS.messageTypes.RM
+          ? 'Show me remedies'
+          : 'Show me technical analysis',
+        direction: 'outgoing',
+        sender: 'user',
+        timestamp: new Date().toISOString()
+      });
+
+      // Settings with 250 words for technical
+      const messageSettings = {
+        questionType: analysisType,
+        language: selectedLanguage,
+        maxResponseLength: analysisType === PROMPTS.messageTypes.TL ? 250 : PROMPTS.responseLength[responseType]?.maxWords || 150
+      };
+
+      // ✅ Create clean message for DB storage
+      const cleanMessageForDB = analysisType === PROMPTS.messageTypes.RM
+        ? 'Please provide specific remedies for the above.'
+        : 'Please provide detailed technical analysis for the above.';
+
+      // ✅ Full context message for AI
+      const aiContextMessage = `Previous Question: "${lastUserMessage}" 
+Previous Response: "${lastAssistantMessage.substring(0, 200)}..." 
+${cleanMessageForDB}`;
+
+
+      // Get credits
+      const { spendTypeId, creditsRequired } = getCreditsByResponseType(responseType);
+
+      if (user.credits < creditsRequired) {
+        setRequiredCredits(creditsRequired);
+        setShowInsufficientModal(true);
+        setIsTyping(false);
+        setMessages(prev => prev.slice(0, -1));
+        return;
+      }
+
+      // ✅ Send context message to AI, but display message will be saved
+      // ✅ Store ONLY the actual user message in DB (not the full context)
+      // ✅ Store ONLY the actual user message in DB (not the full context)
+      // ✅ Send context message to AI, but store clean message in DB
+     // ✅ Build query profile if asking for someone else
+let queryProfile = null;
+if (tempBirthProfile && tempBirthProfile.fullname !== user.fullname) {
+  queryProfile = {
+    name: tempBirthProfile.fullname || tempBirthProfile.name,
+    dob: tempBirthProfile.birthdate,
+    time: tempBirthProfile.birthtime,
+    timezone: tempBirthProfile.timezone || 'IST',
+    place: tempBirthProfile.birthplace,
+    latLong: tempBirthProfile.latitude && tempBirthProfile.longitude
+      ? `${tempBirthProfile.latitude}, ${tempBirthProfile.longitude}`
+      : 'unknown'
+  };
+  console.log('👥 Direct analysis for:', queryProfile.name);
+}
+
+// ✅ Send context message to AI, but store clean message in DB
+const response = await saveChatMessage(
+  user.id,
+  cleanMessageForDB,
+  birthProfile,
+  messageSettings,
+  aiContextMessage,
+  queryProfile  // ✅ NEW: Pass query profile
+);
+
+      if (response.success) {
+        push({
+          message: response.reply,
+          direction: 'incoming',
+          sender: 'assistant',
+          timestamp: new Date().toISOString()
+        });
+
+        // Track last messages
+        setLastUserMessage(displayMessage); // ✅ Store clean message
+        setLastAssistantMessage(response.reply);
+        setLastMessageType(analysisType);
+
+        // Deduct credits
+        await spendCredits(
+          user.userId,
+          spendTypeId,
+          `${analysisType}: ${displayMessage}`,
+          null
+        );
+
+        await refreshCredits();
+      }
+    } catch (error) {
+      console.error('❌ Direct analysis error:', error);
+      push({
+        message: 'Sorry, something went wrong. Please try again.',
+        direction: 'incoming',
+        sender: 'assistant',
+        timestamp: new Date().toISOString()
+      });
+    } finally {
+      setIsTyping(false);
+    }
+  };
+
+
+
 
   const handleGetCredits = () => {
     console.log('📍 Going to credits page, draft preserved:', inputValue);
@@ -1233,7 +1663,7 @@ useEffect(() => {
           <span>{PROMPTS.greetings[selectedLanguage] || PROMPTS.greetings.ENGLISH}</span>
 
           <div className="settings-container">
-            <div className="settings-row">
+            <div className="settings-row" ref={settingsRef}>
               {showSettings && (
                 <>
                   {/* ✅ NEW: Ask for Other Birth Details Button */}
@@ -1287,22 +1717,60 @@ useEffect(() => {
 
 
                   {/* Response Length Toggle */}
-                  <button
-                    className="language-toggle"
-                    onClick={toggleResponseType}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      color: 'inherit',
-                      cursor: 'pointer',
-                      padding: 0,
-                      font: 'inherit'
-                    }}
-                  >
-                    {responseType === 'QUICK' && '⚡ Quick Response'}
-                    {responseType === 'NORMAL' && '💬 Normal Response'}
-                    {responseType === 'DETAILED' && '📖 Detailed Response'}
-                  </button>
+                  <div className="language-dropdown-container" ref={responseTypeRef}>
+                    <button
+                      className={`language-toggle ${showResponseTypeDropdown ? 'active' : ''}`}
+                      onClick={() => setShowResponseTypeDropdown(!showResponseTypeDropdown)}
+                    >
+                      <span className="language-icon">
+                        {responseType === 'QUICK' && '⚡'}
+                        {responseType === 'NORMAL' && '💬'}
+                        {responseType === 'DETAILED' && '📖'}
+                      </span>
+                      <span className="language-text">
+                        {responseType === 'QUICK' && 'Quick'}
+                        {responseType === 'NORMAL' && 'Normal'}
+                        {responseType === 'DETAILED' && 'Detailed'}
+                      </span>
+                      <span className={`language-arrow ${showResponseTypeDropdown ? 'open' : ''}`}>▼</span>
+                    </button>
+
+                    {showResponseTypeDropdown && (
+                      <div className="language-dropdown">
+                        <button
+                          className={`language-option ${responseType === 'QUICK' ? 'selected' : ''}`}
+                          onClick={() => {
+                            setResponseType('QUICK');
+                            setShowResponseTypeDropdown(false);
+                          }}
+                        >
+                          <span className="language-option-text">⚡ Quick Response</span>
+                          {responseType === 'QUICK' && <span className="language-selected-icon">✓</span>}
+                        </button>
+                        <button
+                          className={`language-option ${responseType === 'NORMAL' ? 'selected' : ''}`}
+                          onClick={() => {
+                            setResponseType('NORMAL');
+                            setShowResponseTypeDropdown(false);
+                          }}
+                        >
+                          <span className="language-option-text">💬 Normal Response</span>
+                          {responseType === 'NORMAL' && <span className="language-selected-icon">✓</span>}
+                        </button>
+                        <button
+                          className={`language-option ${responseType === 'DETAILED' ? 'selected' : ''}`}
+                          onClick={() => {
+                            setResponseType('DETAILED');
+                            setShowResponseTypeDropdown(false);
+                          }}
+                        >
+                          <span className="language-option-text">📖 Detailed Response</span>
+                          {responseType === 'DETAILED' && <span className="language-selected-icon">✓</span>}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
 
                   {/* Clear Chat Button */}
                   <button
@@ -1409,8 +1877,77 @@ useEffect(() => {
               </div>
             </div>
           ))}
-
+          <div ref={messagesEndRef} />
           {/* Enhanced Typing Indicator */}
+
+
+          {messages.length > 0 && messages[messages.length - 1].sender === 'assistant' && lastMessageType !== PROMPTS.messageTypes.FH && (
+            <div className="message-bubble incoming" ref={analysisButtonsRef}>
+              <div className="analysis-header">
+                <span className="analysis-icon">💡</span>
+                <span className="analysis-title">Choose an option to continue:</span>
+              </div>
+
+              <div className="analysis-buttons-grid">
+                {(() => {
+                  // Get button labels based on current language
+                  const labels = PROMPTS.buttonLabels[selectedLanguage] || PROMPTS.buttonLabels.ENGLISH;
+
+                  // ✅ If a button is selected, show only that button
+                  if (selectedAnalysisType) {
+                    return (
+                      <button
+                        className={`analysis-btn ${selectedAnalysisType === PROMPTS.messageTypes.FLUP ? 'followup-btn' :
+                          selectedAnalysisType === PROMPTS.messageTypes.RM ? 'remedy-btn' :
+                            selectedAnalysisType === PROMPTS.messageTypes.TL ? 'technical-btn' :
+                              'new-btn'
+                          } selected`}
+                        onClick={() => setSelectedAnalysisType(null)}
+                        title="Click to unselect and see all options"
+                      >
+                        {selectedAnalysisType === PROMPTS.messageTypes.FLUP && labels.FOLLOWUP}
+                        {selectedAnalysisType === PROMPTS.messageTypes.NQ && labels.NEW}
+                        <span className="unselect-icon">✕</span>
+                      </button>
+                    );
+                  }
+
+                  // ✅ Show all buttons when none selected
+                  return (
+                    <>
+                      <button
+                        className="analysis-btn followup-btn"
+                        onClick={() => setSelectedAnalysisType(PROMPTS.messageTypes.FLUP)}
+                      >
+                        {labels.FOLLOWUP}
+                      </button>
+                      <button
+                        className="analysis-btn remedy-btn"
+                        onClick={() => handleDirectAnalysis(PROMPTS.messageTypes.RM)}
+                      >
+                        {labels.REMEDIES}
+                      </button>
+                      <button
+                        className="analysis-btn technical-btn"
+                        onClick={() => handleDirectAnalysis(PROMPTS.messageTypes.TL)}
+                      >
+                        {labels.TECHNICAL}
+                      </button>
+                      <button
+                        className="analysis-btn new-btn"
+                        onClick={() => setSelectedAnalysisType(PROMPTS.messageTypes.NQ)}
+                      >
+                        {labels.NEW}
+                      </button>
+                    </>
+                  );
+                })()}
+              </div>
+            </div>
+          )}
+
+
+
           {isTyping && (
             <div className="typing-indicator">
               <div className="typing-bubble">
@@ -1418,34 +1955,122 @@ useEffect(() => {
               </div>
             </div>
           )}
+
         </div>
 
+        {/* Analysis Buttons - Show after last assistant message */}
+        {/* Analysis Buttons - Show after last assistant message */}
+        {/* Analysis Buttons - Smart Display Logic 
+{messages.length > 0 && messages[messages.length - 1].sender === 'assistant' && (
+  <div className="analysis-buttons-container">
+    {(() => {
+      // ✅ Hide buttons after Free Horoscope
+      if (lastMessageType === PROMPTS.messageTypes.FH) {
+        return null;
+      }
+
+      // ✅ If a button is selected, show only that button
+      if (selectedAnalysisType) {
+        return (
+          <button
+            className={`analysis-btn ${
+              selectedAnalysisType === PROMPTS.messageTypes.FLUP ? 'followup-btn' :
+              selectedAnalysisType === PROMPTS.messageTypes.RM ? 'remedy-btn' :
+              selectedAnalysisType === PROMPTS.messageTypes.TL ? 'technical-btn' :
+              'new-btn'
+            } selected`}
+            onClick={() => setSelectedAnalysisType(null)}
+            title="Click to unselect and see all options"
+          >
+            {selectedAnalysisType === PROMPTS.messageTypes.FLUP && 'Follow-up'}
+            {selectedAnalysisType === PROMPTS.messageTypes.NQ && 'New Question'}
+            <span style={{ marginLeft: '10px', fontSize: '12px' }}>✕</span>
+          </button>
+        );
+      }
+
+      // ✅ Show all buttons when none selected
+      return (
+        <>
+          <button
+            className="analysis-btn followup-btn"
+            onClick={() => setSelectedAnalysisType(PROMPTS.messageTypes.FLUP)}
+            title="Ask follow-up question with context"
+          >
+          Follow-up
+          </button>
+          <button
+            className="analysis-btn remedy-btn"
+            onClick={() => handleDirectAnalysis(PROMPTS.messageTypes.RM)}
+            title="Get remedies immediately for previous question"
+          >
+          Remedies
+          </button>
+          <button
+            className="analysis-btn technical-btn"
+            onClick={() => handleDirectAnalysis(PROMPTS.messageTypes.TL)}
+            title="Get technical analysis immediately (detailed)"
+          >
+          Technical
+          </button>
+          <button
+            className="analysis-btn new-btn"
+            onClick={() => setSelectedAnalysisType(PROMPTS.messageTypes.NQ)}
+            title="Start new question (clears history)"
+          >
+          New
+          </button>
+        </>
+      );
+    })()}
+  </div>
+)}
+*/}
+
+
+
       </div>
+      {/* Message Type Warning Notification */}
+
       <div className="input-area">
         <input
           type="text"
           value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
-          onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+          onChange={handleInputWithSuggestions}
+          onKeyPress={(e) => {
+            if (e.key === 'Enter' && !filteredSuggestions.length) {
+              handleSend();
+            }
+          }}
+          onFocus={() => {
+            // Show suggestions on focus if there's input
+            if (inputValue.trim().length >= 2) {
+              const filtered = allSuggestions.filter(suggestion =>
+                suggestion.toLowerCase().includes(inputValue.toLowerCase())
+              );
+              setFilteredSuggestions(filtered.slice(0, 10));
+            }
+          }}
           placeholder={PROMPTS.languages[selectedLanguage]?.PLACEHOLDER}
           className="chat-input"
+          autoComplete="off"
         />
         {filteredSuggestions.length > 0 && (
           <div className="suggestion-box">
-            {filteredSuggestions.map((s, i) => (
+            {filteredSuggestions.map((suggestion, index) => (
               <div
-                key={i}
+                key={index}
                 className="suggestion-item"
-                onClick={() => {
-                  setInputValue(s);
-                  setFilteredSuggestions([]);
-                }}
+                onClick={() => handleSuggestionClick(suggestion)}
+                onMouseDown={(e) => e.preventDefault()} // Prevent input blur
               >
-                {s}
+                <span className="suggestion-icon">💡</span>
+                <span className="suggestion-text">{suggestion}</span>
               </div>
             ))}
           </div>
         )}
+
 
         <button
           onClick={handleSend}
@@ -1455,6 +2080,52 @@ useEffect(() => {
           {isTyping ? 'Send' : 'Send'}
         </button>
       </div>
+      {/* Feedback Notification - Appears after 3 questions */}
+      {showFeedbackNotification && (
+        <div className="feedback-notification-overlay">
+          <div className="feedback-notification">
+            <button
+              className="feedback-close-btn"
+              onClick={() => setShowFeedbackNotification(false)}
+              aria-label="Close feedback notification"
+            >
+              ✕
+            </button>
+
+            <div className="feedback-icon">✨</div>
+
+            <h3 className="feedback-title">Enjoying Your Cosmic Journey?</h3>
+
+            <p className="feedback-description">
+              Your insights help us guide you better. Share your experience!
+            </p>
+
+            <div className="feedback-actions">
+              <button
+                className="feedback-btn feedback-btn-primary"
+                onClick={() => {
+                  setShowFeedbackNotification(false);
+                  navigate('/feedback');
+                }}
+              >
+                Give Feedback
+              </button>
+              <button
+                className="feedback-btn feedback-btn-secondary"
+                onClick={() => setShowFeedbackNotification(false)}
+              >
+                Maybe Later
+              </button>
+            </div>
+
+            <div className="feedback-footer">
+              Takes less than a minute ⏱️
+            </div>
+          </div>
+        </div>
+      )}
+
+
       {/* ✅ BIRTH DETAILS MODAL - keeping all the existing modal code exactly as is */}
       {
         showBirthDetailsPopup && (
@@ -1654,6 +2325,7 @@ useEffect(() => {
                               </span>
                             </div>
                           </div>
+
 
                           {/* Search Input */}
                           {showSuggestions && (
