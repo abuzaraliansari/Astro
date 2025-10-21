@@ -19,6 +19,8 @@ function ChatBot() {
   const [questionCount, setQuestionCount] = useState(0);
   const [showFeedbackNotification, setShowFeedbackNotification] = useState(false);
   const [showTypeWarning, setShowTypeWarning] = useState(false);
+  const [showTypeConfirmDialog, setShowTypeConfirmDialog] = useState(false);  // ✅ ADD THIS
+
   const [isFirstMessage, setIsFirstMessage] = useState(true);
   const messagesEndRef = useRef(null);
   const [lastMessageType, setLastMessageType] = useState(null);
@@ -82,16 +84,16 @@ function ChatBot() {
     { key: 'HINGLISH', displayName: 'Hinglish (Hindi + English)' }
   ];
   // ✅ Birth Details State (same structure as Auth.js)
- const [birthDetails, setBirthDetails] = useState({
-  fullname: '',
-  religion: 'Hindu',
-  birth_day: '',      // ✅ WITH UNDERSCORE
-  birth_month: '',    // ✅ WITH UNDERSCORE
-  birth_year: '',     // ✅ WITH UNDERSCORE
-  birthtime: '',
-  birthplace: '',
-  timezone: 'Asia/Kolkata'
-});
+  const [birthDetails, setBirthDetails] = useState({
+    fullname: '',
+    religion: 'Hindu',
+    birth_day: '',      // ✅ WITH UNDERSCORE
+    birth_month: '',    // ✅ WITH UNDERSCORE
+    birth_year: '',     // ✅ WITH UNDERSCORE
+    birthtime: '',
+    birthplace: '',
+    timezone: 'Asia/Kolkata'
+  });
 
   // ✅ Country and location state (same as Auth.js)
   const [selectedCountry, setSelectedCountry] = useState({
@@ -661,35 +663,35 @@ function ChatBot() {
 
 
   // ✅ VALIDATION FUNCTIONS (same as Auth.js)
-const validateBirthDetails = () => {
-const required = ['full_name', 'religion', 'birth_day', 'birth_month', 'birth_year', 'birthtime', 'birth_place'];
-  
-  // Check each field, with fallback to selected hour/minute for time
-  const missing = required.filter(field => {
-    if (field === 'birthtime') {
-      // Check if time is selected either in state or in temporary selection
-      return !birthDetails.birthtime && (selectedHour === null || selectedMinute === null);
+  const validateBirthDetails = () => {
+    const required = ['full_name', 'religion', 'birth_day', 'birth_month', 'birth_year', 'birthtime', 'birth_place'];
+
+    // Check each field, with fallback to selected hour/minute for time
+    const missing = required.filter(field => {
+      if (field === 'birthtime') {
+        // Check if time is selected either in state or in temporary selection
+        return !birthDetails.birthtime && (selectedHour === null || selectedMinute === null);
+      }
+      return !birthDetails[field];
+    });
+
+    if (missing.length > 0) {
+      console.log(`⚠️ Please fill in all required fields: ${missing.join(', ')}`);
+      return false;
     }
-    return !birthDetails[field];
-  });
-  
-  if (missing.length > 0) {
-    console.log(`⚠️ Please fill in all required fields: ${missing.join(', ')}`);
-    return false;
-  }
-  
-  // If birthtime is empty but hour/minute are selected, update it before validation
-  if (!birthDetails.birthtime && selectedHour !== null && selectedMinute !== null) {
-    const formattedTime = `${selectedHour}:${selectedMinute}`;
-    setBirthDetails(prev => ({ ...prev, birthtime: formattedTime }));
-  }
-  
-  return true;
-};
+
+    // If birthtime is empty but hour/minute are selected, update it before validation
+    if (!birthDetails.birthtime && selectedHour !== null && selectedMinute !== null) {
+      const formattedTime = `${selectedHour}:${selectedMinute}`;
+      setBirthDetails(prev => ({ ...prev, birthtime: formattedTime }));
+    }
+
+    return true;
+  };
 
 
   const isValidDate = () => {
-  const { birth_day, birth_month, birth_year } = birthDetails;
+    const { birth_day, birth_month, birth_year } = birthDetails;
     if (!birth_day || !birth_month || !birth_year) return false;
 
     const day = parseInt(birth_day);
@@ -711,7 +713,7 @@ const required = ['full_name', 'religion', 'birth_day', 'birth_month', 'birth_ye
 
   // ✅ BIRTH DETAILS MANAGEMENT FUNCTIONS (same as Auth.js)
   const handleBirthDetailsChange = (field, value) => {
-    console.log(`Updating ${field} to:`, value); 
+    console.log(`Updating ${field} to:`, value);
     setBirthDetails(prev => ({
       ...prev,
       [field]: value
@@ -974,13 +976,13 @@ const required = ['full_name', 'religion', 'birth_day', 'birth_month', 'birth_ye
     console.log('🎉 Opening birth details popup for temporary profile');
     setShowBirthDetailsPopup(true);
     // Reset birth details
-      setTimeout(() => {
-    clearBirthDetails();
-    // Focus on fullname input after modal renders
-    const nameInput = document.querySelector('.form-input');
-    if (nameInput) nameInput.focus();
-  }, 100);
-};
+    setTimeout(() => {
+      clearBirthDetails();
+      // Focus on fullname input after modal renders
+      const nameInput = document.querySelector('.form-input');
+      if (nameInput) nameInput.focus();
+    }, 100);
+  };
 
   const closeBirthDetailsPopup = () => {
     console.log('❌ Closing birth details popup');
@@ -1367,6 +1369,37 @@ const required = ['full_name', 'religion', 'birth_day', 'birth_month', 'birth_ye
       setResponseType('NORMAL');
     }
   };
+  // Handle confirmation - Auto-select Follow-up and send
+  const handleConfirmFollowUp = () => {
+    console.log('✅ User confirmed - Auto-selecting Follow-up');
+    setSelectedAnalysisType(PROMPTS.messageTypes.FLUP);
+    setShowTypeConfirmDialog(false);
+
+    // Auto-send the message with Follow-up type
+    setTimeout(() => {
+      handleSend();
+    }, 100);
+  };
+
+  // Handle cancel - Scroll to message type buttons
+  const handleCancelTypeSelection = () => {
+    console.log('❌ User cancelled - Scrolling to message type buttons');
+    setShowTypeConfirmDialog(false);
+
+    // Scroll to analysis buttons
+    if (analysisButtonsRef.current) {
+      analysisButtonsRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center'
+      });
+
+      // Highlight the buttons
+      analysisButtonsRef.current.classList.add('highlight');
+      setTimeout(() => {
+        analysisButtonsRef.current?.classList.remove('highlight');
+      }, 3000);
+    }
+  };
 
   // ✅ UPDATED: Backend-based religion-specific Guru messages
   const getRandomGuruMessage = () => {
@@ -1406,7 +1439,7 @@ const required = ['full_name', 'religion', 'birth_day', 'birth_month', 'birth_ye
         });
 
         // Have previous chat but no type selected - show alert
-        alert('⚠️ Please select a message type (Follow-up, Remedies, Technical, or New Question) before asking AastroG');
+        setShowTypeConfirmDialog(true);
         return;
       }
     }
@@ -2694,34 +2727,82 @@ ${cleanMessageForDB}`;
               >
                 CANCEL
               </button>
-             <button 
-  className="picker-btn picker-btn-ok"
-  onClick={() => {
-    if (selectedHour !== null && selectedMinute !== null) {
-      const formattedTime = `${selectedHour}:${selectedMinute}`;
-      console.log('⏰ Time selected:', formattedTime);
-      
-      // CRITICAL: Update birth details synchronously using callback
-      setBirthDetails(prev => {
-        const updated = {
-          ...prev,
-          birthtime: formattedTime
-        };
-        console.log('✅ Updated birthDetails:', updated);
-        return updated;
-      });
-      
-      // Close modal immediately
-      setShowTimePicker(false);
-      setSelectedHour(null);
-      setSelectedMinute(null);
-    }
-  }}
-  disabled={selectedHour === null || selectedMinute === null}
->
-  OK
-</button>
+              <button
+                className="picker-btn picker-btn-ok"
+                onClick={() => {
+                  if (selectedHour !== null && selectedMinute !== null) {
+                    const formattedTime = `${selectedHour}:${selectedMinute}`;
+                    console.log('⏰ Time selected:', formattedTime);
 
+                    // CRITICAL: Update birth details synchronously using callback
+                    setBirthDetails(prev => {
+                      const updated = {
+                        ...prev,
+                        birthtime: formattedTime
+                      };
+                      console.log('✅ Updated birthDetails:', updated);
+                      return updated;
+                    });
+
+                    // Close modal immediately
+                    setShowTimePicker(false);
+                    setSelectedHour(null);
+                    setSelectedMinute(null);
+                  }
+                }}
+                disabled={selectedHour === null || selectedMinute === null}
+              >
+                OK
+              </button>
+
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Message Type Confirmation Dialog */}
+      {showTypeConfirmDialog && (
+        <div className="feedback-notification-overlay">
+          <div className="feedback-notification type-confirmation-dialog">
+            <button
+              className="feedback-close-btn"
+              onClick={() => setShowTypeConfirmDialog(false)}
+              aria-label="Close dialog"
+            >
+              ×
+            </button>
+
+            <div className="feedback-icon">⚠️</div>
+
+            <h3 className="feedback-title">Message Type Not Selected</h3>
+
+            <p className="feedback-description">
+              You haven't selected a message type yet. Message types help AastroG understand your question better.
+              <br /><br />
+              <strong>Would you like to proceed with "Follow-up"?</strong>
+              <br />
+              <small style={{ opacity: 0.8, fontSize: '13px' }}>
+                (Follow-up continues your previous conversation)
+              </small>
+            </p>
+
+            <div className="feedback-actions">
+              <button
+                className="feedback-btn feedback-btn-primary"
+                onClick={handleConfirmFollowUp}
+              >
+                Yes, Use Follow-up
+              </button>
+
+              <button
+                className="feedback-btn feedback-btn-secondary"
+                onClick={handleCancelTypeSelection}
+              >
+                No, Let Me Choose
+              </button>
+            </div>
+
+            <div className="feedback-footer">
+              Choose Follow-up to continue or select your preferred type
             </div>
           </div>
         </div>
