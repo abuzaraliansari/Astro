@@ -63,7 +63,8 @@ function ChatBot() {
   const [isLoading, setIsLoading] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
-  const [clockMode, setClockMode] = useState('hour');
+  const [selectedHour, setSelectedHour] = useState(null);  // ✅ ADD
+  const [selectedMinute, setSelectedMinute] = useState(null);  // ✅ ADD
   const [showReligionDropdown, setShowReligionDropdown] = useState(false);
   const [showCountryDropdown, setShowCountryDropdown] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -81,16 +82,16 @@ function ChatBot() {
     { key: 'HINGLISH', displayName: 'Hinglish (Hindi + English)' }
   ];
   // ✅ Birth Details State (same structure as Auth.js)
-  const [birthDetails, setBirthDetails] = useState({
-    full_name: '',
-    religion: 'Hindu',
-    birth_day: '',
-    birth_month: '',
-    birth_year: '',
-    birth_time: '',
-    birth_place: '',
-    timezone: 'Asia/Kolkata'
-  });
+ const [birthDetails, setBirthDetails] = useState({
+  fullname: '',
+  religion: 'Hindu',
+  birth_day: '',      // ✅ WITH UNDERSCORE
+  birth_month: '',    // ✅ WITH UNDERSCORE
+  birth_year: '',     // ✅ WITH UNDERSCORE
+  birthtime: '',
+  birthplace: '',
+  timezone: 'Asia/Kolkata'
+});
 
   // ✅ Country and location state (same as Auth.js)
   const [selectedCountry, setSelectedCountry] = useState({
@@ -660,19 +661,35 @@ function ChatBot() {
 
 
   // ✅ VALIDATION FUNCTIONS (same as Auth.js)
-  const validateBirthDetails = () => {
-    const required = ['full_name', 'religion', 'birth_day', 'birth_month', 'birth_year', 'birth_time', 'birth_place'];
-    const missing = required.filter(field => !birthDetails[field]);
-
-    if (missing.length > 0) {
-      console.log(`⚠️ Please fill in all required fields: ${missing.join(', ')}`);
-      return false;
+const validateBirthDetails = () => {
+const required = ['full_name', 'religion', 'birth_day', 'birth_month', 'birth_year', 'birthtime', 'birth_place'];
+  
+  // Check each field, with fallback to selected hour/minute for time
+  const missing = required.filter(field => {
+    if (field === 'birthtime') {
+      // Check if time is selected either in state or in temporary selection
+      return !birthDetails.birthtime && (selectedHour === null || selectedMinute === null);
     }
-    return true;
-  };
+    return !birthDetails[field];
+  });
+  
+  if (missing.length > 0) {
+    console.log(`⚠️ Please fill in all required fields: ${missing.join(', ')}`);
+    return false;
+  }
+  
+  // If birthtime is empty but hour/minute are selected, update it before validation
+  if (!birthDetails.birthtime && selectedHour !== null && selectedMinute !== null) {
+    const formattedTime = `${selectedHour}:${selectedMinute}`;
+    setBirthDetails(prev => ({ ...prev, birthtime: formattedTime }));
+  }
+  
+  return true;
+};
+
 
   const isValidDate = () => {
-    const { birth_day, birth_month, birth_year } = birthDetails;
+  const { birth_day, birth_month, birth_year } = birthDetails;
     if (!birth_day || !birth_month || !birth_year) return false;
 
     const day = parseInt(birth_day);
@@ -694,6 +711,7 @@ function ChatBot() {
 
   // ✅ BIRTH DETAILS MANAGEMENT FUNCTIONS (same as Auth.js)
   const handleBirthDetailsChange = (field, value) => {
+    console.log(`Updating ${field} to:`, value); 
     setBirthDetails(prev => ({
       ...prev,
       [field]: value
@@ -861,7 +879,7 @@ function ChatBot() {
   };
 
 
-  // ✅ CLOCK HELPER FUNCTIONS (same as Auth.js)
+  /*/ ✅ CLOCK HELPER FUNCTIONS (same as Auth.js)
   const getHourAngle = () => {
     if (!birthDetails.birth_time) return 0;
     const [hours, minutes] = birthDetails.birth_time.split(':');
@@ -948,14 +966,21 @@ function ChatBot() {
     const formattedTime = `${newHour.toString().padStart(2, '0')}:${minutes}`;
     handleBirthDetailsChange('birth_time', formattedTime);
   };
+*/
+
 
   // ✅ NEW: Birth Details Modal Functions
   const openBirthDetailsPopup = () => {
     console.log('🎉 Opening birth details popup for temporary profile');
     setShowBirthDetailsPopup(true);
     // Reset birth details
+      setTimeout(() => {
     clearBirthDetails();
-  };
+    // Focus on fullname input after modal renders
+    const nameInput = document.querySelector('.form-input');
+    if (nameInput) nameInput.focus();
+  }, 100);
+};
 
   const closeBirthDetailsPopup = () => {
     console.log('❌ Closing birth details popup');
@@ -2339,20 +2364,17 @@ ${cleanMessageForDB}`;
                             type="button"
                             className="mobile-time-btn uniform-size"
                             onClick={() => {
-                              console.log('🕐 Time picker button clicked!');
-                              setClockMode('hour');
+                              console.log('Time picker button clicked!');
                               setShowTimePicker(true);
                             }}
                           >
                             <span className="time-icon">🕐</span>
                             <span className="time-text">
-                              {birthDetails.birth_time
-                                ? formatTimeDisplay(birthDetails.birth_time)
-                                : 'Select Time'
-                              }
+                              {birthDetails.birthtime || 'Select Time'}
                             </span>
                             <span className="time-arrow">▼</span>
                           </button>
+
                         </div>
                       </div>
                     </div>
@@ -2612,119 +2634,99 @@ ${cleanMessageForDB}`;
       }
 
       {/* ✅ TIME PICKER MODAL - keeping exactly as is */}
-      {
-        showTimePicker && (
-          <div className="picker-overlay" onClick={(e) => e.target === e.currentTarget && setShowTimePicker(false)}>
-            <div className="clock-picker-modal">
-              <div className="clock-time-display">
-                {birthDetails.birth_time ? formatTimeDisplay(birthDetails.birth_time) : '12:00 PM'}
-              </div>
+      {/* TIME PICKER MODAL - Scroll Wheel Version */}
+      {showTimePicker && (
+        <div className="picker-overlay" onClick={(e) => {
+          if (e.target === e.currentTarget) setShowTimePicker(false);
+        }}>
+          <div className="scroll-picker-modal">
+            {/* Header */}
+            <div className="scroll-picker-header">
+              <h3>Select Birth Time</h3>
+            </div>
 
-              <div className="analog-clock">
-                {/* Mode Toggle */}
-                <div className="clock-mode-toggle">
-                  <button
-                    className={`mode-btn ${clockMode === 'hour' ? 'active' : ''}`}
-                    onClick={() => setClockMode('hour')}
-                  >
-                    Hour
-                  </button>
-                  <button
-                    className={`mode-btn ${clockMode === 'minute' ? 'active' : ''}`}
-                    onClick={() => setClockMode('minute')}
-                  >
-                    Minute
-                  </button>
-                </div>
-
-                <div className="clock-face">
-                  {/* Hour Mode */}
-                  {clockMode === 'hour' &&
-                    [12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map(hour => (
+            {/* Scroll Wheels Content */}
+            <div className="scroll-picker-content">
+              <div className="scroll-wheels">
+                {/* Hour Wheel */}
+                <div className="scroll-wheel">
+                  <div className="wheel-label">HOUR</div>
+                  <div className="wheel-container">
+                    {Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0')).map((hour) => (
                       <div
-                        key={hour}
-                        className={`hour-number hour-${hour} ${getSelectedHour() === hour ? 'selected' : ''}`}
-                        onClick={() => handleHourClick(hour)}
+                        key={`hour-${hour}`}
+                        className={`wheel-item ${selectedHour === hour ? 'selected' : ''}`}
+                        onClick={() => setSelectedHour(hour)}
                       >
                         {hour}
                       </div>
-                    ))
-                  }
+                    ))}
+                  </div>
+                </div>
 
-                  {/* Minute Mode */}
-                  {clockMode === 'minute' &&
-                    [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55].map((minute, index) => (
+                {/* Minute Wheel */}
+                <div className="scroll-wheel">
+                  <div className="wheel-label">MINUTE</div>
+                  <div className="wheel-container">
+                    {Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, '0')).map((minute) => (
                       <div
-                        key={minute}
-                        className={`minute-number minute-${index} ${getSelectedMinute() === minute ? 'selected' : ''}`}
-                        onClick={() => handleMinuteClick(minute)}
+                        key={`minute-${minute}`}
+                        className={`wheel-item ${selectedMinute === minute ? 'selected' : ''}`}
+                        onClick={() => setSelectedMinute(minute)}
                       >
-                        {minute.toString().padStart(2, '0')}
+                        {minute}
                       </div>
-                    ))
-                  }
-
-                  {/* Clock Hands */}
-                  <div className="clock-center"></div>
-                  <div
-                    className="clock-hand hour-hand"
-                    style={{
-                      transform: `rotate(${getHourAngle()}deg)`
-                    }}
-                  ></div>
-                  <div
-                    className="clock-hand minute-hand"
-                    style={{
-                      transform: `rotate(${getMinuteAngle()}deg)`
-                    }}
-                  ></div>
+                    ))}
+                  </div>
                 </div>
-
-                {/* AM/PM Toggle */}
-                <div className="am-pm-toggle">
-                  <button
-                    className={`am-pm-btn ${getTimePeriod() === 'AM' ? 'active' : ''}`}
-                    onClick={() => toggleAMPM('AM')}
-                  >
-                    AM
-                  </button>
-                  <button
-                    className={`am-pm-btn ${getTimePeriod() === 'PM' ? 'active' : ''}`}
-                    onClick={() => toggleAMPM('PM')}
-                  >
-                    PM
-                  </button>
-                </div>
-              </div>
-
-              <div className="time-input-fallback">
-                <input
-                  type="time"
-                  value={birthDetails.birth_time}
-                  onChange={(e) => handleBirthDetailsChange('birth_time', e.target.value)}
-                  className="time-input-hidden"
-                />
-              </div>
-
-              <div className="picker-buttons">
-                <button
-                  className="picker-btn picker-btn-cancel"
-                  onClick={() => setShowTimePicker(false)}
-                >
-                  CANCEL
-                </button>
-                <button
-                  className="picker-btn picker-btn-ok"
-                  onClick={() => setShowTimePicker(false)}
-                  disabled={!birthDetails.birth_time}
-                >
-                  OK
-                </button>
               </div>
             </div>
+
+            {/* Buttons */}
+            <div className="picker-buttons">
+              <button
+                className="picker-btn picker-btn-cancel"
+                onClick={() => {
+                  setShowTimePicker(false);
+                  setSelectedHour(null);
+                  setSelectedMinute(null);
+                }}
+              >
+                CANCEL
+              </button>
+             <button 
+  className="picker-btn picker-btn-ok"
+  onClick={() => {
+    if (selectedHour !== null && selectedMinute !== null) {
+      const formattedTime = `${selectedHour}:${selectedMinute}`;
+      console.log('⏰ Time selected:', formattedTime);
+      
+      // CRITICAL: Update birth details synchronously using callback
+      setBirthDetails(prev => {
+        const updated = {
+          ...prev,
+          birthtime: formattedTime
+        };
+        console.log('✅ Updated birthDetails:', updated);
+        return updated;
+      });
+      
+      // Close modal immediately
+      setShowTimePicker(false);
+      setSelectedHour(null);
+      setSelectedMinute(null);
+    }
+  }}
+  disabled={selectedHour === null || selectedMinute === null}
+>
+  OK
+</button>
+
+            </div>
           </div>
-        )
-      }
+        </div>
+      )}
+
 
       {/* Insufficient Credits Modal */}
       <InsufficientCreditsModal

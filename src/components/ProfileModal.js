@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
-import { searchPlaces, getAllCountries, updateUserProfile  } from '../api';
+import { searchPlaces, getAllCountries, updateUserProfile } from '../api';
 
 function Profile() {
     const navigate = useNavigate();
-     const { user, refreshUser } = useAuth();   // ✅ CORRECT - Only get user from AuthContext
+    const { user, refreshUser } = useAuth();   // ✅ CORRECT - Only get user from AuthContext
     // ✅ REPLACE these hardcoded arrays with state
 
 
@@ -38,7 +38,9 @@ function Profile() {
     const [searchQuery, setSearchQuery] = useState('');
     const [placeSuggestions, setPlaceSuggestions] = useState([]);
     const [isLoadingPlaces, setIsLoadingPlaces] = useState(false);
-    const [clockMode, setClockMode] = useState('hour');
+    const [selectedHour, setSelectedHour] = useState(null);  // ✅ ADD
+    const [selectedMinute, setSelectedMinute] = useState(null);  // ✅ ADD
+
     const [isLoading, setIsLoading] = useState(false);
     const [loadingCountries, setLoadingCountries] = useState(false);
     const [placeCountries, setPlaceCountries] = useState([]);
@@ -93,87 +95,87 @@ function Profile() {
         if (!profileData.birth_month || !profileData.birth_year) return 31;
         return new Date(profileData.birth_year, profileData.birth_month, 0).getDate();
     };
-
- const formatTimeDisplay = (time24) => {
-    if (!time24) return '12:00 PM';
+    /*
+     const formatTimeDisplay = (time24) => {
+        if (!time24) return '12:00 PM';
+        
+        // Handle both "HH:MM:SS" and "HH:MM" formats
+        const timeParts = time24.split(':');
+        const hours = parseInt(timeParts[0]);
+        const minutes = timeParts[1] || '00';
+        
+        // Convert to 12-hour format
+        const period = hours >= 12 ? 'PM' : 'AM';
+        let displayHour = hours % 12;
+        if (displayHour === 0) displayHour = 12; // Handle midnight/noon
+        
+        // ✅ Format: HH:MM AM/PM
+        return `${displayHour.toString().padStart(2, '0')}:${minutes} ${period}`;
+    };
     
-    // Handle both "HH:MM:SS" and "HH:MM" formats
-    const timeParts = time24.split(':');
-    const hours = parseInt(timeParts[0]);
-    const minutes = timeParts[1] || '00';
     
-    // Convert to 12-hour format
-    const period = hours >= 12 ? 'PM' : 'AM';
-    let displayHour = hours % 12;
-    if (displayHour === 0) displayHour = 12; // Handle midnight/noon
+        const getSelectedHour = () => {
+            if (!profileData.birth_time) return 12;
+            const [hours] = profileData.birth_time.split(':');
+            const hour = parseInt(hours);
+            return hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
+        };
     
-    // ✅ Format: HH:MM AM/PM
-    return `${displayHour.toString().padStart(2, '0')}:${minutes} ${period}`;
-};
-
-
-    const getSelectedHour = () => {
-        if (!profileData.birth_time) return 12;
-        const [hours] = profileData.birth_time.split(':');
-        const hour = parseInt(hours);
-        return hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
-    };
-
-    const getSelectedMinute = () => {
-        if (!profileData.birth_time) return 0;
-        const [, minutes] = profileData.birth_time.split(':');
-        return parseInt(minutes);
-    };
-
-    const getTimePeriod = () => {
-        if (!profileData.birth_time) return 'AM';
-        const [hours] = profileData.birth_time.split(':');
-        return parseInt(hours) >= 12 ? 'PM' : 'AM';
-    };
-
-    const getHourAngle = () => {
-        const hour = getSelectedHour();
-        return (hour % 12) * 30;
-    };
-
-    const getMinuteAngle = () => {
-        return getSelectedMinute() * 6;
-    };
-
-    const handleHourClick = (hour) => {
-        const period = getTimePeriod();
-        let hour24 = hour;
-        if (period === 'PM' && hour !== 12) hour24 = hour + 12;
-        if (period === 'AM' && hour === 12) hour24 = 0;
-
-        const currentMinute = getSelectedMinute().toString().padStart(2, '0');
-        handleProfileDataChange('birth_time', `${hour24.toString().padStart(2, '0')}:${currentMinute}`);
-        setClockMode('minute');
-    };
-
-    const handleMinuteClick = (minute) => {
-        const currentHour = profileData.birth_time ? profileData.birth_time.split(':')[0] : '00';
-        handleProfileDataChange('birth_time', `${currentHour}:${minute.toString().padStart(2, '0')}`);
-    };
-
-    const toggleAMPM = (period) => {
-        if (!profileData.birth_time) {
-            handleProfileDataChange('birth_time', period === 'AM' ? '00:00' : '12:00');
-            return;
-        }
-
-        const [hours, minutes] = profileData.birth_time.split(':');
-        let hour = parseInt(hours);
-
-        if (period === 'PM' && hour < 12) {
-            hour += 12;
-        } else if (period === 'AM' && hour >= 12) {
-            hour -= 12;
-        }
-
-        handleProfileDataChange('birth_time', `${hour.toString().padStart(2, '0')}:${minutes}`);
-    };
-
+        const getSelectedMinute = () => {
+            if (!profileData.birth_time) return 0;
+            const [, minutes] = profileData.birth_time.split(':');
+            return parseInt(minutes);
+        };
+    
+        const getTimePeriod = () => {
+            if (!profileData.birth_time) return 'AM';
+            const [hours] = profileData.birth_time.split(':');
+            return parseInt(hours) >= 12 ? 'PM' : 'AM';
+        };
+    
+        const getHourAngle = () => {
+            const hour = getSelectedHour();
+            return (hour % 12) * 30;
+        };
+    
+        const getMinuteAngle = () => {
+            return getSelectedMinute() * 6;
+        };
+    
+        const handleHourClick = (hour) => {
+            const period = getTimePeriod();
+            let hour24 = hour;
+            if (period === 'PM' && hour !== 12) hour24 = hour + 12;
+            if (period === 'AM' && hour === 12) hour24 = 0;
+    
+            const currentMinute = getSelectedMinute().toString().padStart(2, '0');
+            handleProfileDataChange('birth_time', `${hour24.toString().padStart(2, '0')}:${currentMinute}`);
+            setClockMode('minute');
+        };
+    
+        const handleMinuteClick = (minute) => {
+            const currentHour = profileData.birth_time ? profileData.birth_time.split(':')[0] : '00';
+            handleProfileDataChange('birth_time', `${currentHour}:${minute.toString().padStart(2, '0')}`);
+        };
+    
+        const toggleAMPM = (period) => {
+            if (!profileData.birth_time) {
+                handleProfileDataChange('birth_time', period === 'AM' ? '00:00' : '12:00');
+                return;
+            }
+    
+            const [hours, minutes] = profileData.birth_time.split(':');
+            let hour = parseInt(hours);
+    
+            if (period === 'PM' && hour < 12) {
+                hour += 12;
+            } else if (period === 'AM' && hour >= 12) {
+                hour -= 12;
+            }
+    
+            handleProfileDataChange('birth_time', `${hour.toString().padStart(2, '0')}:${minutes}`);
+        };
+    */
     const toggleReligionDropdown = () => {
         setShowReligionDropdown(!showReligionDropdown);
     };
@@ -248,71 +250,118 @@ function Profile() {
     };
 
     const handleSave = async () => {
-    if (!profileData.full_name || !profileData.birth_day || !profileData.birth_month || 
-        !profileData.birth_year || !profileData.birth_time || !profileData.birth_place) {
-      alert('Please fill in all required fields marked with *');
-      return;
-    }
+        if (!profileData.full_name || !profileData.birth_day || !profileData.birth_month ||
+            !profileData.birth_year || !profileData.birth_time || !profileData.birth_place) {
+            alert('Please fill in all required fields marked with *');
+            return;
+        }
 
-    setIsLoading(true);
-    try {
-      // ✅ Format birth_date
-      const birthDate = `${profileData.birth_year}-${profileData.birth_month.toString().padStart(2, '0')}-${profileData.birth_day.toString().padStart(2, '0')}`;
-      
-      // ✅ Build update object with ALL fields (API will handle which ones to update)
-      const dataToSave = {
-        full_name: profileData.full_name,
-        religion: profileData.religion,
-        birth_date: birthDate,
-        birth_time: profileData.birth_time,
-        birth_place: profileData.birth_place,
-        country_code: profileData.country_code,
-        latitude: profileData.latitude,
-        longitude: profileData.longitude,
-        country_code_no: profileData.country_code_no,
-        mobile_number: profileData.mobile_number
-      };
+        setIsLoading(true);
+        try {
+            // ✅ Format birth_date
+            const birthDate = `${profileData.birth_year}-${profileData.birth_month.toString().padStart(2, '0')}-${profileData.birth_day.toString().padStart(2, '0')}`;
 
-      console.log('💾 Saving profile data:', dataToSave);
+            // ✅ Build update object with ALL fields (API will handle which ones to update)
+            const dataToSave = {
+                full_name: profileData.full_name,
+                religion: profileData.religion,
+                birth_date: birthDate,
+                birth_time: profileData.birth_time,
+                birth_place: profileData.birth_place,
+                country_code: profileData.country_code,
+                latitude: profileData.latitude,
+                longitude: profileData.longitude,
+                country_code_no: profileData.country_code_no,
+                mobile_number: profileData.mobile_number
+            };
 
-      // ✅ Call API
-      const response = await updateUserProfile(user.userId, dataToSave);
-      
-      if (response.data.success) {
-        alert('✅ Profile updated successfully!');
-        console.log('📊 Updated fields:', response.data.updatedFields);
-        console.log('👤 New user data:', response.data.user);
-         await refreshUser();
-            console.log('🔄 User data refreshed in AuthContext');
-        // Navigate back to home or previous page
-        navigate('/home');
-      }
-    } catch (error) {
-      console.error('❌ Error saving profile:', error);
-      alert(`Failed to save profile: ${error.response?.data?.error || error.message}`);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+            console.log('💾 Saving profile data:', dataToSave);
+
+            // ✅ Call API
+            const response = await updateUserProfile(user.userId, dataToSave);
+
+            if (response.data.success) {
+                alert('✅ Profile updated successfully!');
+                console.log('📊 Updated fields:', response.data.updatedFields);
+                console.log('👤 New user data:', response.data.user);
+                await refreshUser();
+                console.log('🔄 User data refreshed in AuthContext');
+                // Navigate back to home or previous page
+                navigate('/home');
+            }
+        } catch (error) {
+            console.error('❌ Error saving profile:', error);
+            alert(`Failed to save profile: ${error.response?.data?.error || error.message}`);
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
 
     const handleCancel = () => {
         navigate(-1); // Go back to previous page
     };
+    // ✅ ADD THIS NEW useEffect - Update profileData when user data loads
+   // ✅ FIXED: Update profileData when user data loads
+useEffect(() => {
+  if (user) {
+    console.log('🔄 User data changed, updating profileData...');
+    console.log('User birth_time:', user.birth_time);
+    
+    // ✅ Parse birth_time to extract HH:MM format
+    let parsedTime = user.birth_time || '';
+    if (parsedTime && parsedTime.includes('T')) {
+        // Handle format "1970-01-01T03:04:00.000Z"
+        const timeOnly = parsedTime.split('T')[1].split('.')[0]; // Gets "03:04:00"
+        const [hour, minute] = timeOnly.split(':');
+        parsedTime = `${hour}:${minute}`; // Convert to "03:04"
+    } else if (parsedTime && parsedTime.split(':').length === 3) {
+        // Handle format "03:04:00"
+        const [hour, minute] = parsedTime.split(':');
+        parsedTime = `${hour}:${minute}`; // Convert to "03:04"
+    }
+    
+    setProfileData(prev => ({
+      ...prev,
+      full_name: user.full_name || prev.full_name,
+      religion: user.religion || prev.religion,
+      birth_day: user.birth_date ? new Date(user.birth_date).getDate() : prev.birth_day,
+      birth_month: user.birth_date ? new Date(user.birth_date).getMonth() + 1 : prev.birth_month,
+      birth_year: user.birth_date ? new Date(user.birth_date).getFullYear() : prev.birth_year,
+      birth_time: parsedTime || prev.birth_time,  // ✅ Use parsed time
+      birth_place: user.birth_place || prev.birth_place,
+      country_code: user.country_code || prev.country_code,
+      country_code_no: user.country_code_no || prev.country_code_no,
+      mobile_number: user.mobile_number || prev.mobile_number,
+      latitude: user.latitude || prev.latitude,
+      longitude: user.longitude || prev.longitude
+    }));
+  }
+}, [user]);
+
+
+
+
+    // ✅ ADD THIS NEW useEffect after line 280
+    useEffect(() => {
+        console.log('👤 User data from AuthContext:', user);
+        console.log('⏰ Birth time loaded:', user?.birthtime);
+        console.log('📊 Current profileData:', profileData);
+    }, [user, profileData]);
 
     // ✅ Disable body scroll when on profile page
-useEffect(() => {
-    // Save original overflow style
-    const originalOverflow = document.body.style.overflow;
-    
-    // Disable body scroll
-    document.body.style.overflow = 'hidden';
-    
-    // Cleanup: restore scroll when leaving page
-    return () => {
-        document.body.style.overflow = originalOverflow;
-    };
-}, []);
+    useEffect(() => {
+        // Save original overflow style
+        const originalOverflow = document.body.style.overflow;
+
+        // Disable body scroll
+        document.body.style.overflow = 'hidden';
+
+        // Cleanup: restore scroll when leaving page
+        return () => {
+            document.body.style.overflow = originalOverflow;
+        };
+    }, []);
 
 
     useEffect(() => {
@@ -324,95 +373,95 @@ useEffect(() => {
     }, []);
 
     // ✅ Fetch countries from API on component mount
-// ✅ Fetch countries from API on component mount
-// Fetch countries from API on component mount
-useEffect(() => {
-    const fetchCountries = async () => {
-        try {
-            setLoadingCountries(true);
-            console.log('🌍 Fetching countries from API...');
-            
-            const response = await getAllCountries();
-            
-            if (response.data && response.data.success) {
-                const countries = response.data.countries || [];
-                console.log('✅ Loaded countries:', countries.length);
-                
-                // ✅ FIXED: API uses 'iso' not 'iso2', and 'code' for phone code
-                const validPlaceCountries = countries
-                    .filter(c => c.iso && c.name) // ✅ Changed from iso2 to iso
-                    .map(c => ({
-                        name: c.name,
-                        code: c.iso.toLowerCase(), // ✅ Changed from iso2 to iso
-                        iso: c.iso,                // ✅ Changed from iso2 to iso
-                        flag: c.flag || '🌍'
-                    }));
-                
-                const validPhoneCountries = countries
-                    .filter(c => c.iso && c.name && c.code) // ✅ Changed iso2 to iso, phone_code to code
-                    .map(c => ({
-                        name: c.name,
-                        code: c.code,              // ✅ Changed from phone_code to code
-                        iso: c.iso,                // ✅ Changed from iso2 to iso
-                        flag: c.flag || '🌍'
-                    }));
-                
-                console.log('✅ Valid place countries:', validPlaceCountries.length);
-                console.log('✅ Valid phone countries:', validPhoneCountries.length);
-                
-                if (validPlaceCountries.length === 0 || validPhoneCountries.length === 0) {
-                    console.warn('⚠️ No valid countries found, using defaults');
-                    setDefaultCountries();
+    // ✅ Fetch countries from API on component mount
+    // Fetch countries from API on component mount
+    useEffect(() => {
+        const fetchCountries = async () => {
+            try {
+                setLoadingCountries(true);
+                console.log('🌍 Fetching countries from API...');
+
+                const response = await getAllCountries();
+
+                if (response.data && response.data.success) {
+                    const countries = response.data.countries || [];
+                    console.log('✅ Loaded countries:', countries.length);
+
+                    // ✅ FIXED: API uses 'iso' not 'iso2', and 'code' for phone code
+                    const validPlaceCountries = countries
+                        .filter(c => c.iso && c.name) // ✅ Changed from iso2 to iso
+                        .map(c => ({
+                            name: c.name,
+                            code: c.iso.toLowerCase(), // ✅ Changed from iso2 to iso
+                            iso: c.iso,                // ✅ Changed from iso2 to iso
+                            flag: c.flag || '🌍'
+                        }));
+
+                    const validPhoneCountries = countries
+                        .filter(c => c.iso && c.name && c.code) // ✅ Changed iso2 to iso, phone_code to code
+                        .map(c => ({
+                            name: c.name,
+                            code: c.code,              // ✅ Changed from phone_code to code
+                            iso: c.iso,                // ✅ Changed from iso2 to iso
+                            flag: c.flag || '🌍'
+                        }));
+
+                    console.log('✅ Valid place countries:', validPlaceCountries.length);
+                    console.log('✅ Valid phone countries:', validPhoneCountries.length);
+
+                    if (validPlaceCountries.length === 0 || validPhoneCountries.length === 0) {
+                        console.warn('⚠️ No valid countries found, using defaults');
+                        setDefaultCountries();
+                    } else {
+                        setPlaceCountries(validPlaceCountries);
+                        setPhoneCountries(validPhoneCountries);
+                        console.log('✅ Countries loaded successfully');
+                    }
                 } else {
-                    setPlaceCountries(validPlaceCountries);
-                    setPhoneCountries(validPhoneCountries);
-                    console.log('✅ Countries loaded successfully');
+                    console.error('❌ Failed to load countries');
+                    setDefaultCountries();
                 }
-            } else {
-                console.error('❌ Failed to load countries');
+            } catch (error) {
+                console.error('❌ Error fetching countries:', error);
                 setDefaultCountries();
+            } finally {
+                setLoadingCountries(false);
             }
-        } catch (error) {
-            console.error('❌ Error fetching countries:', error);
-            setDefaultCountries();
-        } finally {
-            setLoadingCountries(false);
-        }
+        };
+
+        fetchCountries();
+    }, []);
+
+    const chatContainerStyle = {
+        backgroundImage: 'linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.5)), url(/uploads/chat.jpg)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
     };
 
-    fetchCountries();
-}, []);
+    // ✅ Fallback function if API fails
+    const setDefaultCountries = () => {
+        const defaultCountries = [
+            { name: 'India', code: 'in', iso: 'IN', flag: '🇮🇳', phone_code: '+91' },
+            { name: 'United States', code: 'us', iso: 'US', flag: '🇺🇸', phone_code: '+1' },
+            { name: 'United Kingdom', code: 'gb', iso: 'GB', flag: '🇬🇧', phone_code: '+44' },
+            { name: 'Canada', code: 'ca', iso: 'CA', flag: '🇨🇦', phone_code: '+1' },
+            { name: 'Australia', code: 'au', iso: 'AU', flag: '🇦🇺', phone_code: '+61' },
+        ];
 
-const chatContainerStyle = {
-  backgroundImage: 'linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.5)), url(/uploads/chat.jpg)',
-  backgroundSize: 'cover',
-  backgroundPosition: 'center',
-};
+        setPlaceCountries(defaultCountries.map(c => ({
+            name: c.name,
+            code: c.code,
+            iso: c.iso,
+            flag: c.flag
+        })));
 
-// ✅ Fallback function if API fails
-const setDefaultCountries = () => {
-    const defaultCountries = [
-        { name: 'India', code: 'in', iso: 'IN', flag: '🇮🇳', phone_code: '+91' },
-        { name: 'United States', code: 'us', iso: 'US', flag: '🇺🇸', phone_code: '+1' },
-        { name: 'United Kingdom', code: 'gb', iso: 'GB', flag: '🇬🇧', phone_code: '+44' },
-        { name: 'Canada', code: 'ca', iso: 'CA', flag: '🇨🇦', phone_code: '+1' },
-        { name: 'Australia', code: 'au', iso: 'AU', flag: '🇦🇺', phone_code: '+61' },
-    ];
-    
-    setPlaceCountries(defaultCountries.map(c => ({
-        name: c.name,
-        code: c.code,
-        iso: c.iso,
-        flag: c.flag
-    })));
-    
-    setPhoneCountries(defaultCountries.map(c => ({
-        name: c.name,
-        code: c.phone_code,
-        iso: c.iso,
-        flag: c.flag
-    })));
-};
+        setPhoneCountries(defaultCountries.map(c => ({
+            name: c.name,
+            code: c.phone_code,
+            iso: c.iso,
+            flag: c.flag
+        })));
+    };
 
 
     // Add this after your existing useEffect (around line 280)
@@ -446,7 +495,7 @@ const setDefaultCountries = () => {
 
     // ✅ NO EARLY RETURN - Always render the page
     return (
-        <div className="profile-page-container"style={chatContainerStyle}>
+        <div className="profile-page-container" style={chatContainerStyle}>
 
             <div className="birth-details-modal profile-page-modal">
                 <button className="modal-close-btn" onClick={handleCancel}>×</button>
@@ -517,7 +566,7 @@ const setDefaultCountries = () => {
                             </div>
                         </div>
 
-                    
+
                         <h4 style={{ color: '#ffd700', fontWeight: 'bold' }}>
                             Contact Details *
                         </h4>
@@ -617,6 +666,7 @@ const setDefaultCountries = () => {
                                 </div>
 
                                 {/* Time Picker */}
+                                {/* Time Picker */}
                                 <div className="form-field form-field-half">
                                     <label className="form-label">Birth Time</label>
                                     <div className="mobile-time-picker">
@@ -624,21 +674,57 @@ const setDefaultCountries = () => {
                                             type="button"
                                             className="mobile-time-btn uniform-size"
                                             onClick={() => {
-                                                setClockMode('hour');
+                                                // ✅ Initialize with current birth_time value
+                                                if (profileData.birth_time) {
+                                                    const timeStr = profileData.birth_time;
+
+                                                    // Handle different time formats
+                                                    let hour = '12';
+                                                    let minute = '00';
+
+                                                    if (timeStr.includes('T')) {
+                                                        // Format: "1970-01-01T03:04:00.000Z" - extract time portion
+                                                        const timeOnly = timeStr.split('T')[1].split('.')[0]; // Gets "03:04:00"
+                                                        [hour, minute] = timeOnly.split(':');
+                                                    } else if (timeStr.includes(':')) {
+                                                        // Format: "03:04" or "03:04:00"
+                                                        [hour, minute] = timeStr.split(':');
+                                                    }
+
+                                                    setSelectedHour(hour);
+                                                    setSelectedMinute(minute);
+                                                } else {
+                                                    setSelectedHour('12');
+                                                    setSelectedMinute('00');
+                                                }
                                                 setShowTimePicker(true);
                                             }}
                                         >
                                             <span className="time-icon">🕐</span>
                                             <span className="time-text">
-                                                {profileData.birth_time
-                                                    ? formatTimeDisplay(profileData.birth_time)
-                                                    : 'Select Time'
-                                                }
+                                                {profileData.birth_time ? (() => {
+                                                    const timeStr = profileData.birth_time;
+
+                                                    // Handle different time formats
+                                                    if (timeStr.includes('T')) {
+                                                        // Format: "1970-01-01T03:04:00.000Z" - extract time portion
+                                                        const timeOnly = timeStr.split('T')[1].split('.')[0]; // Gets "03:04:00"
+                                                        const [hour, minute] = timeOnly.split(':');
+                                                        return `${hour}:${minute}`; // Display as "03:04"
+                                                    } else if (timeStr.includes(':')) {
+                                                        // Format: "03:04" or "03:04:00"
+                                                        const [hour, minute] = timeStr.split(':');
+                                                        return `${hour}:${minute}`; // Display as "03:04"
+                                                    }
+
+                                                    return 'Select Time';
+                                                })() : 'Select Time'}
                                             </span>
-                                            <span className="time-arrow">▼</span>
+                                            <span className="time-arrow">⏱️</span>
                                         </button>
                                     </div>
                                 </div>
+
                             </div>
 
                             {/* Row 2: Country and Place */}
@@ -795,7 +881,7 @@ const setDefaultCountries = () => {
                 </div>
 
                 <div className="modal-buttons">
-                   
+
                     <button
                         className="btn-primary"
                         onClick={handleSave}
@@ -808,7 +894,7 @@ const setDefaultCountries = () => {
                             </>
                         ) : (
                             <>
-                                
+
                                 <span>Update Profile</span>
                             </>
                         )}
@@ -895,119 +981,93 @@ const setDefaultCountries = () => {
             )
             }
 
-            {
-                showTimePicker && (
-                    <div className="picker-overlay" onClick={(e) => e.target === e.currentTarget && setShowTimePicker(false)}>
-                        <div className="clock-picker-modal">
-                            <div className="clock-time-display">
-                                {profileData.birth_time ? formatTimeDisplay(profileData.birth_time) : '12:00 PM'}
-                            </div>
+            {showTimePicker && (
+                <div className="picker-overlay" onClick={(e) => {
+                    if (e.target === e.currentTarget) {
+                        setShowTimePicker(false);
+                        setSelectedHour(null);
+                        setSelectedMinute(null);
+                    }
+                }}>
+                    <div className="scroll-picker-modal">
+                        {/* Header */}
+                        <div className="scroll-picker-header">
+                            <h3>Select Birth Time</h3>
+                        </div>
 
-                            <div className="analog-clock">
-                                {/* Mode Toggle */}
-                                <div className="clock-mode-toggle">
-                                    <button
-                                        className={`mode-btn ${clockMode === 'hour' ? 'active' : ''}`}
-                                        onClick={() => setClockMode('hour')}
-                                    >
-                                        Hour
-                                    </button>
-                                    <button
-                                        className={`mode-btn ${clockMode === 'minute' ? 'active' : ''}`}
-                                        onClick={() => setClockMode('minute')}
-                                    >
-                                        Minute
-                                    </button>
-                                </div>
-
-                                <div className="clock-face">
-                                    {/* Hour Mode */}
-                                    {clockMode === 'hour' &&
-                                        [12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map(hour => (
+                        {/* Scroll Wheels Content */}
+                        <div className="scroll-picker-content">
+                            <div className="scroll-wheels">
+                                {/* Hour Wheel */}
+                                <div className="scroll-wheel">
+                                    <div className="wheel-label">HOUR</div>
+                                    <div className="wheel-container">
+                                        {Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0')).map((hour) => (
                                             <div
-                                                key={hour}
-                                                className={`hour-number hour-${hour} ${getSelectedHour() === hour ? 'selected' : ''}`}
-                                                onClick={() => handleHourClick(hour)}
+                                                key={`hour-${hour}`}
+                                                className={`wheel-item ${selectedHour === hour ? 'selected' : ''}`}
+                                                onClick={() => setSelectedHour(hour)}
                                             >
                                                 {hour}
                                             </div>
-                                        ))
-                                    }
+                                        ))}
+                                    </div>
+                                </div>
 
-                                    {/* Minute Mode */}
-                                    {clockMode === 'minute' &&
-                                        [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55].map((minute, index) => (
+                                {/* Minute Wheel */}
+                                <div className="scroll-wheel">
+                                    <div className="wheel-label">MINUTE</div>
+                                    <div className="wheel-container">
+                                        {Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, '0')).map((minute) => (
                                             <div
-                                                key={minute}
-                                                className={`minute-number minute-${index} ${getSelectedMinute() === minute ? 'selected' : ''}`}
-                                                onClick={() => handleMinuteClick(minute)}
+                                                key={`minute-${minute}`}
+                                                className={`wheel-item ${selectedMinute === minute ? 'selected' : ''}`}
+                                                onClick={() => setSelectedMinute(minute)}
                                             >
-                                                {minute.toString().padStart(2, '0')}
+                                                {minute}
                                             </div>
-                                        ))
-                                    }
-
-                                    {/* Clock Hands */}
-                                    <div className="clock-center"></div>
-                                    <div
-                                        className="clock-hand hour-hand"
-                                        style={{
-                                            transform: `rotate(${getHourAngle()}deg)`
-                                        }}
-                                    ></div>
-                                    <div
-                                        className="clock-hand minute-hand"
-                                        style={{
-                                            transform: `rotate(${getMinuteAngle()}deg)`
-                                        }}
-                                    ></div>
+                                        ))}
+                                    </div>
                                 </div>
-
-                                {/* AM/PM Toggle */}
-                                <div className="am-pm-toggle">
-                                    <button
-                                        className={`am-pm-btn ${getTimePeriod() === 'AM' ? 'active' : ''}`}
-                                        onClick={() => toggleAMPM('AM')}
-                                    >
-                                        AM
-                                    </button>
-                                    <button
-                                        className={`am-pm-btn ${getTimePeriod() === 'PM' ? 'active' : ''}`}
-                                        onClick={() => toggleAMPM('PM')}
-                                    >
-                                        PM
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div className="time-input-fallback">
-                                <input
-                                    type="time"
-                                    value={profileData.birth_time}
-                                    onChange={(e) => handleProfileDataChange('birth_time', e.target.value)}
-                                    className="time-input-hidden"
-                                />
-                            </div>
-
-                            <div className="picker-buttons">
-                                <button
-                                    className="picker-btn picker-btn-cancel"
-                                    onClick={() => setShowTimePicker(false)}
-                                >
-                                    CANCEL
-                                </button>
-                                <button
-                                    className="picker-btn picker-btn-ok"
-                                    onClick={() => setShowTimePicker(false)}
-                                    disabled={!profileData.birth_time}
-                                >
-                                    OK
-                                </button>
                             </div>
                         </div>
+
+                        {/* Buttons */}
+                        <div className="picker-buttons">
+                            <button
+                                className="picker-btn picker-btn-cancel"
+                                onClick={() => {
+                                    setShowTimePicker(false);
+                                    setSelectedHour(null);
+                                    setSelectedMinute(null);
+                                }}
+                            >
+                                CANCEL
+                            </button>
+                            <button
+                                className="picker-btn picker-btn-ok"
+                                onClick={() => {
+                                    if (selectedHour !== null && selectedMinute !== null) {
+                                        const formattedTime = `${selectedHour}:${selectedMinute}`;
+                                        console.log('⏰ Time selected:', formattedTime);
+
+                                        handleProfileDataChange('birth_time', formattedTime);  // ✅ Changed to birth_time
+
+                                        setShowTimePicker(false);
+                                        setSelectedHour(null);
+                                        setSelectedMinute(null);
+                                    }
+                                }}
+                                disabled={selectedHour === null || selectedMinute === null}
+                            >
+                                OK
+                            </button>
+
+                        </div>
                     </div>
-                )
-            }
+                </div>
+            )}
+
         </div>
     );
 };

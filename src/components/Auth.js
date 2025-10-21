@@ -297,28 +297,20 @@ Thank you! 🙏`;
     }
     console.log('✅ Birth date valid');
 
-  // Step 4: Validate Time
-console.log('Step 4: Validating birth time...');
-console.log('birthDetails.birthtime:', birthDetails.birthtime);
-console.log('selectedHour:', selectedHour, 'selectedMinute:', selectedMinute);
+    // Step 4: Validate Time
+    console.log('Step 4: Validating birth time...');
+    console.log('birthDetails.birthtime:', birthDetails.birthtime);
+    console.log('selectedHour:', selectedHour, 'selectedMinute:', selectedMinute);
 
-// Check if time is selected (either in birthDetails or in the temporary selection)
-const hasTimeSelected = (birthDetails.birthtime && birthDetails.birthtime.trim()) || 
-                        (selectedHour !== null && selectedMinute !== null);
+    // Check if time is set
+    if (!birthDetails.birthtime || !birthDetails.birthtime.trim()) {
+      console.error('❌ Validation failed: Birth time is empty');
+      console.error('Full birthDetails:', birthDetails);
+      showPopupMessage('Please select your birth time');
+      return;
+    }
 
-if (!hasTimeSelected) {
-  console.error('❌ Validation failed: Birth time is empty');
-  showPopupMessage('Please select your birth time');
-  return;
-}
-
-// If time is in temporary selection, set it now
-if (!birthDetails.birthtime && selectedHour !== null && selectedMinute !== null) {
-  const formattedTime = `${selectedHour}:${selectedMinute}`;
-  handleBirthDetailsChange('birthtime', formattedTime);
-}
-
-console.log('✓ Birth time valid:', birthDetails.birthtime);
+    console.log('✓ Birth time valid:', birthDetails.birthtime);
 
     // ✅ Step 5: Validate Place
     console.log('✓ Step 5: Validating birth place...');
@@ -384,7 +376,7 @@ console.log('✓ Birth time valid:', birthDetails.birthtime);
           full_name: birthDetails.full_name.trim(),
           religion: birthDetails.religion,
           birth_date: birthDate,
-          birth_time: birthDetails.birth_time,
+          birth_time: birthDetails.birthtime || `${selectedHour}:${selectedMinute}`, 
           birth_place: selectedPlace?.description || birthDetails.birth_place,
           country_code: selectedPlace?.country_code || selectedCountry.code.toUpperCase(),
           latitude: selectedPlace?.latitude || null,
@@ -1861,25 +1853,14 @@ console.log('✓ Birth time valid:', birthDetails.birthtime);
              <button 
   className="picker-btn picker-btn-ok"
   onClick={() => {
-    if (selectedHour !== null && selectedMinute !== null) {
-      const formattedTime = `${selectedHour}:${selectedMinute}`;
-      console.log('⏰ Time selected:', formattedTime);
-      
-      // Update birth details first
-      handleBirthDetailsChange('birthtime', formattedTime);
-      
-      // Use setTimeout to ensure state is updated before closing
-      setTimeout(() => {
-        setShowTimePicker(false);
-        setSelectedHour(null);
-        setSelectedMinute(null);
-      }, 100);
-    }
+    console.log('✅ Date selected:', birthDetails.birth_day, birthDetails.birth_month, birthDetails.birth_year);
+    setShowDatePicker(false);
   }}
-  disabled={selectedHour === null || selectedMinute === null}
+  disabled={!birthDetails.birth_day || !birthDetails.birth_month || !birthDetails.birth_year}
 >
   OK
 </button>
+
 
             </div>
           </div>
@@ -1954,14 +1935,28 @@ console.log('✓ Birth time valid:', birthDetails.birthtime);
                 onClick={() => {
                   if (selectedHour !== null && selectedMinute !== null) {
                     const formattedTime = `${selectedHour}:${selectedMinute}`;
-                    handleBirthDetailsChange('birthtime', formattedTime);
-                    setShowTimePicker(false);
+                    console.log('⏰ Time selected:', formattedTime);
+
+                    // CRITICAL: Update birth details AND wait for state update
+                    setBirthDetails(prev => ({
+                      ...prev,
+                      birthtime: formattedTime
+                    }));
+
+                    // Close modal after a brief delay to ensure state update
+                    setTimeout(() => {
+                      setShowTimePicker(false);
+                      setSelectedHour(null);
+                      setSelectedMinute(null);
+                      console.log('✅ Time picker closed. birthtime should be:', formattedTime);
+                    }, 50);
                   }
                 }}
                 disabled={selectedHour === null || selectedMinute === null}
               >
                 OK
               </button>
+
             </div>
           </div>
         </div>
