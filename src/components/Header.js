@@ -8,7 +8,7 @@ import InsufficientCreditsModal from './InsufficientCreditsModal';
 
 function Header() {
   const location = useLocation();
-    const navigate = useNavigate(); // ✅ Add this
+  const navigate = useNavigate(); // ✅ Add this
   const { user, logout, updateUserProfile } = useAuth();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showNavMenu, setShowNavMenu] = useState(false);
@@ -83,6 +83,7 @@ function Header() {
       //'/horoscope': 'Horoscope',
       //'/submuhrat': 'Submuhrat',
       '/call': 'Appointment',
+      '/aboutus': 'AboutUs',
       //'/pooja': 'Pooja',
       //'/moon': 'Moon Tracker'
     };
@@ -100,7 +101,9 @@ function Header() {
     //{ path: '/pooja', label: 'Pooja' },
     { path: '/call', label: 'Appointment' },
     { path: '/refer', label: 'Refer' },
-    { path: '/feedback', label: 'Feedback' }
+    { path: '/feedback', label: 'Feedback' },
+    { path: '/aboutus', label: 'AboutUs' },
+    { path: '/contactus', label: 'ContactUs' }
 
   ];
 
@@ -258,11 +261,11 @@ function Header() {
 
   const handleMobileMenuClick = () => setShowNavMenu(false);
 
- const handleProfileClick = () => {
-  console.log('Profile clicked');
-  navigate('/profile'); // ✅ Navigate to profile page
-  setShowUserMenu(false);
-};
+  const handleProfileClick = () => {
+    console.log('Profile clicked');
+    navigate('/profile'); // ✅ Navigate to profile page
+    setShowUserMenu(false);
+  };
 
 
   const handleEditToggle = (field) => {
@@ -348,14 +351,25 @@ function Header() {
       )}
 
       {/* Profile Modal */}
-  
+
 
 
       <header className="app-header">
         <div className="header-left">
           <Link to="/home" className="logo-section">
-            <span className="logo-icon">🌟</span>
-            <h1 className="logo-text">AstroGuru</h1>
+            <span
+              className="logo-icon"
+              style={{
+                backgroundImage: 'url(/uploads/logo.png)',
+                backgroundSize: 'contain',
+                backgroundRepeat: 'no-repeat',
+                backgroundPosition: 'center',
+                width: '40px',
+                height: '40px',
+                display: 'inline-block'
+              }}
+            ></span>
+            <h1 className="logo-text">AastroG</h1>
           </Link>
         </div>
         {/* Centered Navigation Container */}

@@ -383,7 +383,11 @@ useEffect(() => {
     fetchCountries();
 }, []);
 
-
+const chatContainerStyle = {
+  backgroundImage: 'linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.5)), url(/uploads/chat.jpg)',
+  backgroundSize: 'cover',
+  backgroundPosition: 'center',
+};
 
 // ✅ Fallback function if API fails
 const setDefaultCountries = () => {
@@ -442,7 +446,7 @@ const setDefaultCountries = () => {
 
     // ✅ NO EARLY RETURN - Always render the page
     return (
-        <div className="profile-page-container">
+        <div className="profile-page-container"style={chatContainerStyle}>
 
             <div className="birth-details-modal profile-page-modal">
                 <button className="modal-close-btn" onClick={handleCancel}>×</button>

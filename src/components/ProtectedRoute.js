@@ -19,16 +19,16 @@ const ProtectedRoute = ({ children }) => {
         fontSize: '18px',
         fontFamily: 'Arial, sans-serif'
       }}>
-        <div style={{ textAlign: 'center' }}>
+       {/* <div style={{ textAlign: 'center' }}>
           <div style={{ 
             fontSize: '48px', 
             marginBottom: '20px',
             animation: 'pulse 2s ease-in-out infinite'
-          }}>⭐</div>
+          }}></div>
           <div style={{ fontSize: '18px', fontWeight: '500' }}>
             Loading your cosmic journey...
           </div>
-        </div>
+        </div>*/}
         <style>{`
           @keyframes pulse {
             0%, 100% { transform: scale(1); opacity: 1; }
@@ -40,7 +40,13 @@ const ProtectedRoute = ({ children }) => {
   }
 
   // ✅ If not authenticated, redirect to login page
-  if (!user) {
+  if (!user?.full_name) 
+    
+    {
+      if(location.pathname =="/terms"){
+        console.log(`🔒 Accessing public route: ${location.pathname}`);
+        return children;
+      }
     console.log(`🔒 Protected route blocked: ${location.pathname}`);
     return <Navigate to="/" replace />;
   }

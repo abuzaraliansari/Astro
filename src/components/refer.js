@@ -99,7 +99,7 @@ const Refer = () => {
   // ✅ WhatsApp Share Link
   const getWhatsAppLink = () => {
     const referralLink = getReferralLink();
-    const message = `🌟 Hey! Join AstroGuru and get personalized astrological guidance! Use my referral code: ${referralCode}\n\n${referralLink}`;
+    const message = `🌟 Hey! Join AastroG and get personalized astrological guidance! Use my referral code: ${referralCode}\n\n${referralLink}`;
     return `https://wa.me/?text=${encodeURIComponent(message)}`;
   };
 
@@ -113,7 +113,7 @@ const Refer = () => {
   // ✅ NEW: Instagram - Copy to clipboard (Instagram doesn't support direct sharing links)
   const handleInstagramShare = () => {
     const referralLink = getReferralLink();
-    const message = `🌟 Join AstroGuru for personalized astrological guidance!\n\nUse my referral code: ${referralCode}\n\n${referralLink}`;
+    const message = `🌟 Join AastroG for personalized astrological guidance!\n\nUse my referral code: ${referralCode}\n\n${referralLink}`;
 
     copyToClipboard(message, 'instagram');
     alert('📱 Message copied! Now paste it in your Instagram story, post, or bio.');
@@ -122,7 +122,7 @@ const Refer = () => {
   // ✅ NEW: Twitter/X Share Link
   const getTwitterLink = () => {
     const referralLink = getReferralLink();
-    const message = `🌟 Join AstroGuru for personalized astrological guidance! Use my referral code: ${referralCode}`;
+    const message = `🌟 Join AastroG for personalized astrological guidance! Use my referral code: ${referralCode}`;
     return `https://twitter.com/intent/tweet?text=${encodeURIComponent(message)}&url=${encodeURIComponent(referralLink)}`;
   };
 
@@ -143,10 +143,14 @@ const Refer = () => {
       setCopying(false);
     }
   };
-
+const chatContainerStyle = {
+  backgroundImage: 'linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.5)), url(/uploads/chat.jpg)',
+  backgroundSize: 'cover',
+  backgroundPosition: 'center',
+};
 
   return (
-    <div className="refer-page">
+    <div className="refer-page"style={chatContainerStyle}>
       <div className="refer-container">
         {/* Header Section */}
         <div className="refer-header">

@@ -26,6 +26,9 @@ import BookPooja from './components/BookPooja';
 import Refer from './components/refer';
 import Profile from './components/ProfileModal';
 import Feedback from './components/Feedback';
+import Terms  from './components/terms';
+import AboutUs  from './components/AboutUs';
+import ContactUs  from './components/ContactUs';
 
 import './App.css';
 
@@ -36,13 +39,15 @@ const Layout = ({ children }) => {
 
   const isAuthPage = location.pathname === '/';
   const isHomePage = location.pathname === '/home';
+  const isTermsPage = location.pathname === '/terms'; // ✅ NEW: Identify terms page
+  const isPublicPage = isAuthPage || isTermsPage; 
 
   useEffect(() => {
     if (loading) return; // ⏳ Wait until auth state is ready
-
+ if (isPublicPage) return;
     if (!user) {
       // ❌ Not logged in → only allow `/`
-      if (!isAuthPage) navigate('/', { replace: true });
+      navigate('/', { replace: true });
       return;
     }
 
@@ -65,7 +70,10 @@ const Layout = ({ children }) => {
       '/pooja',
       '/refer',
       '/profile',
-      '/feedback'
+      '/feedback',
+      '/terms',
+      '/aboutus',
+      '/contactus'
     ]);
 
     if (!validPaths.has(location.pathname)) {
@@ -98,10 +106,10 @@ const Layout = ({ children }) => {
   return (
     <div className="app-layout">
       {!isAuthPage && <Header />}
-      <main className={`main-content ${!isAuthPage ? 'with-header-footer' : ''}`}>
+      <main className={`main-content ${!isPublicPage  ? 'with-header-footer' : ''}`}>
         {children}
       </main>
-      {isHomePage && <Footer />}
+      { <Footer />}
     </div>
   );
 };
@@ -115,7 +123,7 @@ function App() {
             <Routes>
               {/* Public Auth Route */}
               <Route path="/" element={<Auth />} />
-
+<Route path="/terms" element={<Terms />} />
               {/* Protected Routes */}
               <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
               <Route path="/chat" element={<ProtectedRoute><ChatBot /></ProtectedRoute>} />
@@ -129,6 +137,8 @@ function App() {
               <Route path="/refer" element={<ProtectedRoute><Refer /></ProtectedRoute>} />
               <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
               <Route path="/feedback" element={<ProtectedRoute><Feedback /></ProtectedRoute>} />
+              <Route path="/aboutus" element={<ProtectedRoute><AboutUs /></ProtectedRoute>} />
+              <Route path="/contactus" element={<ProtectedRoute><ContactUs /></ProtectedRoute>} />
 
               {/* Fallback route */}
               <Route path="*" element={<Navigate to="/home" replace />} />

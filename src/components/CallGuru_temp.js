@@ -179,7 +179,7 @@ function CallGuru() {
   const fetchGurus = async () => {
     setLoading(prev => ({ ...prev, gurus: true }));
     try {
-      console.log('🧙‍♂️ FETCHING GURUS FROM API...');
+      console.log(' FETCHING GURUS FROM API...');
       const response = await getAllGurus();
 
       if (response.data.success) {
@@ -329,7 +329,7 @@ function CallGuru() {
   };
   // ✅ Add this at the top of your component (before return statement)
   const GURU_AVATARS = [
-    '👨‍🏫', '👨‍🎓', '🧙‍♂️', '👳‍♂️', '🧙', '👴', '🧑‍🏫', '👨‍⚕️',
+    '👨‍🏫', '👨‍🎓', '👳‍♂️', '🧙', '👴', '🧑‍🏫', '👨‍⚕️',
     '👨‍🔬', '🧑‍💼', '👨‍🚀', '🧝‍♂️', '🧑‍🎨', '👨‍🍳'
   ];
 
@@ -360,10 +360,34 @@ function CallGuru() {
   // ✅ BOOK CALL API INTEGRATION
   // ✅ FIXED: BOOK CALL API INTEGRATION
   const bookCall = async () => {
-    if (!selectedGuru || !selectedConsultation || !selectedTimeSlot || !user) {
-      alert('Please select Guru, consultation type, and time slot');
-      return;
-    }
+     if (!selectedGuru) {
+    alert('⚠️ Please select a Guru first');
+    scrollToSection(guruSectionRef);
+    return;
+  }
+
+  if (!selectedConsultation) {
+    alert('⚠️ Please select a consultation type');
+    scrollToSection(consultationSectionRef);
+    return;
+  }
+
+  if (selectedDate === null && !customSelectedDate) {
+    alert('⚠️ Please select a date');
+    scrollToSection(dateSectionRef);
+    return;
+  }
+
+  if (!selectedTimeSlot) {
+    alert('⚠️ Please select a time slot');
+    scrollToSection(timeSectionRef);
+    return;
+  }
+
+  if (!user) {
+    alert('⚠️ Please login to continue');
+    return;
+  }
 
     const selectedSlot = generateAvailableSlots().find(slot => slot.id === selectedTimeSlot);
 
@@ -447,7 +471,7 @@ function CallGuru() {
             creditsUsed: consultationType.credits_required,
             bookingId: response.data.booking?.id || 'N/A'
           };
-console.log('📧 Booking email data:', emailData);
+          console.log('📧 Booking email data:', emailData);
           // Send customer confirmation email
           await sendEmailNotification('BOOKING_CONFIRMATION', user.email, emailData);
           console.log('✅ Customer confirmation email sent');
@@ -603,9 +627,14 @@ console.log('📧 Booking email data:', emailData);
     const slots = generateAvailableSlots();
     return slots.find(slot => slot.id === selectedTimeSlot);
   };
+  const chatContainerStyle = {
+  backgroundImage: 'linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.5)), url(/uploads/chat.jpg)',
+  backgroundSize: 'cover',
+  backgroundPosition: 'center',
+};
 
   return (
-    <div className="call-container">
+    <div className="call-container" style={chatContainerStyle}>
       <div className="call-header">
         <h1 className="page-title">📞 Book Appointment With Guru Ji</h1>
         <p className="page-subtitle">Direct personal consultation with expert astrologers</p>
@@ -618,7 +647,7 @@ console.log('📧 Booking email data:', emailData);
       <div className="guru-profiles-section" ref={guruSectionRef}>
         <div className="section-header">
           <div className="section-title-wrapper">
-            <div className="section-icon">🧙‍♂️</div>
+            <div className="section-icon"></div>
             <h3 className="section-title">Choose Your Spiritual Guide</h3>
           </div>
           <div className="scroll-controls">
@@ -652,15 +681,78 @@ console.log('📧 Booking email data:', emailData);
               >
                 {/* ✅ Verified Badge */}
 
-                {/* ✅ Avatar with persistent icon */}
+                {/* ✅ Avatar with real image or fallback */}
+                {/* ✅ Avatar with real image or fallback */}
                 <div className="guru-avatar-wrapper">
                   <div className="guru-avatar">
-                    <span className="avatar-icon">{getGuruAvatar(guru.id)}</span>
+                    {guru.profile_image_url ? (
+                      <>
+                        {/* Image */}
+                        <img
+                          src={guru.profile_image_url}
+                          alt={guru.name}
+                          className="guru-image"
+                          onLoad={(e) => {
+                            console.log('✅ Image loaded:', guru.name, guru.profile_image_url);
+                            // ✅ Show image, hide fallback icon
+                            e.target.style.opacity = '1';
+                            e.target.style.display = 'block';
+                            const fallback = e.target.nextElementSibling;
+                            if (fallback) fallback.style.display = 'none';
+                          }}
+                          onError={(e) => {
+                            console.error('❌ Image failed to load:', guru.name, guru.profile_image_url);
+                            // ✅ Hide image, show fallback icon
+                            e.target.style.display = 'none';
+                            const fallback = e.target.nextElementSibling;
+                            if (fallback) fallback.style.display = 'flex';
+                          }}
+                          style={{
+                            opacity: 0,
+                            display: 'none',
+                            transition: 'opacity 0.3s',
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover',
+                            borderRadius: '50%'
+                          }}
+                        />
+                        {/* Fallback Icon (hidden by default if image exists) */}
+                        <span
+                          className="avatar-icon avatar-fallback"
+                          style={{
+                            display: 'flex',
+                            position: 'absolute',
+                            top: '50%',
+                            left: '50%',
+                            transform: 'translate(-50%, -50%)',
+                            fontSize: '48px',
+                            zIndex: 1
+                          }}
+                        >
+                          {getGuruAvatar(guru.id)}
+                        </span>
+                      </>
+                    ) : (
+                      // No URL - show icon immediately
+                      <span
+                        className="avatar-icon"
+                        style={{
+                          fontSize: '48px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}
+                      >
+                        {getGuruAvatar(guru.id)}
+                      </span>
+                    )}
                     <div className="avatar-ring"></div>
                   </div>
-                  <div className="online-indicator"></div>
-                  {/* ✅ Rating */}
+                 {/*   <div className="online-indicator"></div>
+                 Rating */}
                   <div className="guru-rating">
+
                     <div className="stars">
                       {[...Array(5)].map((_, i) => (
                         <span key={i} className="star" style={{ '--i': i }}>⭐</span>
@@ -925,11 +1017,11 @@ console.log('📧 Booking email data:', emailData);
             )}
           </div>
         </div>
-        <button
-          className="book-call-btn"
-          onClick={bookCall}
-          disabled={!selectedTimeSlot || !selectedGuru || !selectedConsultation || !user || loading.booking}
-        >
+        <button 
+  className={`book-call-btn ${(!selectedTimeSlot || !selectedGuru || !selectedConsultation || !user || loading.booking) ? 'btn-disabled' : ''}`}
+  onClick={bookCall}
+  disabled={loading.booking} // Only disable during actual booking
+>
           {loading.booking ? '⏳ Booking...' : '📞 Book Call - Use Credits'}
         </button>
       </div>

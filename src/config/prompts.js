@@ -184,48 +184,48 @@ const PROMPTS = {
   // Typing indicator messages
   typing: {
     ISLAM: [
-      "🕌 Guru ji is seeking Allah's guidance for you... ✨",
-      "📿 Guru ji is consulting the divine wisdom, Insha'Allah... 🌙",
-      "⭐ Guru ji is reading your cosmic patterns with Allah's blessings... 🔥",
-      "🧘 Guru ji is in spiritual meditation for your question... 🌸"
+      "🕌 AastroG is seeking Allah's guidance for you... ✨",
+      "📿 AastroG is consulting the divine wisdom, Insha'Allah... 🌙",
+      "⭐ AastroG is reading your cosmic patterns with Allah's blessings... 🔥",
+      "🧘 AastroG is in spiritual meditation for your question... 🌸"
     ],
     CHRISTIANITY: [
-      "⛪ Guru ji is seeking God's guidance for you... ✨",
-      "📿 Guru ji is praying for divine wisdom... 🌙",
-      "⭐ Guru ji is reading your celestial chart with God's grace... 🔥",
-      "🧘 Guru ji is in prayer for your spiritual question... 🌸"
+      "⛪ AastroG is seeking God's guidance for you... ✨",
+      "📿 AastroG is praying for divine wisdom... 🌙",
+      "⭐ AastroG is reading your celestial chart with God's grace... 🔥",
+      "🧘 AastroG is in prayer for your spiritual question... 🌸"
     ],
     SIKHISM: [
-      "🏛️ Guru ji is seeking Waheguru's guidance... ✨",
-      "📿 Guru ji is consulting with divine wisdom... 🌙",
-      "⭐ Guru ji is analyzing your cosmic energy with Waheguru's blessings... 🔥",
-      "🧘 Guru ji is in meditation with the Guru's teachings... 🌸"
+      "🏛️ AastroG is seeking Waheguru's guidance... ✨",
+      "📿 AastroG is consulting with divine wisdom... 🌙",
+      "⭐ AastroG is analyzing your cosmic energy with Waheguru's blessings... 🔥",
+      "🧘 AastroG is in meditation with the Guru's teachings... 🌸"
     ],
     BUDDHISM: [
-      "🏛️ Guru ji is seeking Buddha's wisdom for you... ✨",
-      "📿 Guru ji is meditating on your karmic patterns... 🌙",
-      "⭐ Guru ji is following the path of enlightenment... 🔥",
-      "🧘 Guru ji is in mindful meditation for your question... 🌸"
+      "🏛️ AastroG is seeking Buddha's wisdom for you... ✨",
+      "📿 AastroG is meditating on your karmic patterns... 🌙",
+      "⭐ AastroG is following the path of enlightenment... 🔥",
+      "🧘 AastroG is in mindful meditation for your question... 🌸"
     ],
     HINDU: [
-      "🔮 Guru ji is consulting the ancient Vedic texts... ✨",
-      "🌟 Guru ji is reading your celestial birth chart... 🌙",
-      "⭐ Guru ji is analyzing your cosmic energy patterns... 🔥",
-      "🧘 Guru ji is meditating on your divine question... 🌸"
+      "🔮 AastroG is consulting the ancient Vedic texts... ✨",
+      "🌟 AastroG is reading your celestial birth chart... 🌙",
+      "⭐ AastroG is analyzing your cosmic energy patterns... 🔥",
+      "🧘 AastroG is meditating on your divine question... 🌸"
     ]
   },
   
    greetings: {
-    ENGLISH: "Welcome! Your cosmic journey with Guru ji begins... ✨",
-    HINDI: "स्वागत है! आपकी ज्योतिषीय यात्रा गुरु जी के साथ शुरू होती है... ✨",
-    HINGLISH: "Namaste! Aapki cosmic journey Guru ji ke saath shuru hoti hai... ✨"
+    ENGLISH: "Welcome! Your cosmic journey with AastroG begins... ✨",
+    HINDI: "स्वागत है! आपकी ज्योतिषीय यात्रा आस्ट्रोजी के साथ शुरू होती है... ✨",
+    HINGLISH: "Namaste! Aapki cosmic journey AastroG ke saath shuru hoti hai... ✨"
   },
 
   // Add this after the greetings section
 welcome: {
-  ENGLISH: "Welcome, {name}! 🌌 Your personalized cosmic journey begins here with Astro AI – guided by wisdom, powered by technology.",
-  HINDI: "स्वागत है, {name} जी! 🌠 आपकी व्यक्तिगत ज्योतिषीय यात्रा अब Astro AI के साथ आरंभ होती है – ज्ञान और तकनीक का संगम।",
-  HINGLISH: "Namaste {name} Ji! 🌟 Aapki personalized cosmic journey ab shuru hoti hai Astro AI ke saath – jahaan technology milti hai Guru ji ke gyaan se."
+  ENGLISH: "Welcome, {name}! 🌌 Your personalized cosmic journey begins here with AastroG – guided by wisdom, powered by technology.",
+  HINDI: "स्वागत है, {name} जी! 🌠 आपकी व्यक्तिगत ज्योतिषीय यात्रा अब आस्ट्रोजी के साथ आरंभ होती है – ज्ञान और तकनीक का संगम।",
+  HINGLISH: "Namaste {name} Ji! 🌟 Aapki personalized cosmic journey ab shuru hoti hai AastroG ke saath – jahaan technology milti hai AastroG ke gyaan se."
 },
 
 

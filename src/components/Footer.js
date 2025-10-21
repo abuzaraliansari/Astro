@@ -1,44 +1,40 @@
 import React from 'react';
-import { Navigate, useLocation, useNavigate  } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 const Footer = () => {
-  const location = useLocation();
-  const isChat = location.pathname === '/chat';
   const navigate = useNavigate();
-  
- const handleGems = () => {
-  console.log('Gems clicked');
-  navigate('/credits');
-};
-  const handleRituals = () => console.log('Rituals clicked');  
-  const handleRefer = () => {
-  console.log('Refer clicked');
-  navigate('/refer');
-};
-
 
   return (
     <footer className="app-footer">
-      {/* Bottom Action Buttons (only show on chat page) */}
-        <div className="footer-actions">
-          <button className="action-btn gems-btn" onClick={handleGems}
-          style={{fontSize:'1rem',fontWeight: 'bold', gap: '0.3rem' }}>
-            <span className='dimond'>💎</span>
-            <span>Credits</span>
-          </button>
+      <div className="footer-left">
+        <button className="footer-link" onClick={() => navigate('/terms')}>
+          Terms
+        </button>
+      </div>
 
-        
+      <div className="footer-center">
+        <span>© 2025 AastroG Your personal  Astro Guru </span>
+      </div>
 
-          <button className="action-btn refer-btn" onClick={handleRefer}
-           style={{fontSize:'1rem',fontWeight: 'bold'}}>
-            <span>🎁</span>
-            <span>Refer</span>
-          </button>
-        </div>
-
-      {/* Footer Text */}
-      <div className="footer-text">
-        © 2025 AstroGuru • Powered by AI & Vedic Wisdom • 🌟
+      <div className="footer-right footer-social">
+        <a href="mailto:aastrogai@gmail.com" className="social-icon" title="Email">
+          <i className="fa-solid fa-envelope"></i>
+        </a>
+        <a href="tel:+919711413917" className="social-icon" title="Call Us">
+          <i className="fa-solid fa-phone"></i>
+        </a>
+        <a href="https://wa.me/919711413917" target="_blank" rel="noopener noreferrer" className="social-icon" title="WhatsApp">
+          <i className="fa-brands fa-whatsapp"></i>
+        </a>
+        <a href="https://facebook.com/aastrog" target="_blank" rel="noopener noreferrer" className="social-icon" title="Facebook">
+          <i className="fa-brands fa-facebook"></i>
+        </a>
+        <a href="https://instagram.com/aastrog" target="_blank" rel="noopener noreferrer" className="social-icon" title="Instagram">
+          <i className="fa-brands fa-instagram"></i>
+        </a>
+        <a href="https://x.com/aastrog" target="_blank" rel="noopener noreferrer" className="social-icon" title="Twitter">
+          <i className="fa-brands fa-x-twitter"></i>
+        </a>
       </div>
     </footer>
   );

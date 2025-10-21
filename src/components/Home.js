@@ -14,18 +14,45 @@ function Home() {
   const handleSubmuhrat = () => navigate('/submuhrat');
   const handleHoroscope = () => navigate('/horoscope');
   const handleCallGuru = () => navigate('/call');
+   const handleGems = () => {
+  console.log('Gems clicked');
+  navigate('/credits');
+};
+  const handleRituals = () => console.log('Rituals clicked');  
+  const handleRefer = () => {
+  console.log('Refer clicked');
+  navigate('/refer');
+};
+
+  const chatContainerStyle = {
+    backgroundImage: 'linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.5)), url(/uploads/chat.jpg)',
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+  };
 
   return (
-    <div className="home-container">
+    <div className="home-container" style={chatContainerStyle}>
       {/* Hero Section */}
       <div className="home-hero">
         <div className="hero-content">
-          <h1>🌟 Welcome {user?.full_name ? user.full_name.split(' ')[0] : ''}</h1>
+          
+          <h1> <span 
+    className="logo-icon"
+    style={{
+      backgroundImage: 'url(/uploads/logo.png)',
+      backgroundSize: 'contain',
+      backgroundRepeat: 'no-repeat',
+      backgroundPosition: 'center',
+      width: '40px',
+      height: '40px',
+      display: 'inline-block'
+    }}
+  ></span>Welcome {user?.full_name ? user.full_name.split(' ')[0] : ''}</h1>
           <p>Unlock the secrets of the universe with personalized Vedic wisdom</p>
         </div>
       </div>
 
-        {/* Call to Action 
+      {/* Call to Action 
       <div className="services-grid">
         <button className="service-card cta-button" onClick={handleChat}
         style={{minHeight: '7rem'}}>
@@ -65,8 +92,8 @@ function Home() {
 
       {/* Additional Services  */}
       <div className="credit-packages-grid"
-       style={{display: 'flex',justifyContent: 'center', alignItems: 'center',marginTop: '20px',marginLeft:'auto', marginRight:'auto',gap: '3rem',}}>
-       {/* <button className="service-card" onClick={handleHoroscope}>
+        style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginTop: '20px', marginLeft: 'auto', marginRight: 'auto', gap: '3rem', }}>
+        {/* <button className="service-card" onClick={handleHoroscope}>
           <div className="service-icon">📊</div>
           <div className="service-content">
             <div className="service-title">Daily Horoscope</div>
@@ -81,32 +108,32 @@ function Home() {
           </div>
         </button> */}
         <button className="credit-package" onClick={handleChat}
-         style={{minHeight: '15rem'}}>
+          style={{ minHeight: '15rem' }}>
           <div className="service-icon">💬</div>
           <div className="service-content">
             <div className="credits-label"
-            style={{fontSize: '1rem', fontWeight: 'bold',color: '#FFD700'}}
+              style={{ fontSize: '1rem', fontWeight: 'bold', color: '#FFD700' }}
             >Chat Now!</div>
             <div className="bonus-credits"
-            style={{fontSize: '0.7rem', color: 'white', backgroundColor: '#bab9b942'}}
+              style={{ fontSize: '0.7rem', color: 'white', backgroundColor: '#bab9b942' }}
             >Get Personalized Guidance Now!</div>
           </div>
         </button>
-        
-<button className="credit-package" onClick={handleCallGuru}
-         style={{minHeight: '15rem'}}>
+
+        <button className="credit-package" onClick={handleCallGuru}
+          style={{ minHeight: '15rem' }}>
           <div className="service-icon">📞</div>
           <div className="service-content">
             <div className="credits-label"
-            style={{fontSize: '1rem', fontWeight: 'bold',color: '#FFD700'}}
+              style={{ fontSize: '1rem', fontWeight: 'bold', color: '#FFD700' }}
             >Book Appointment</div>
             <div className="bonus-credits"
-            style={{fontSize: '0.7rem', color: 'white', backgroundColor: '#bab9b942'}}
-            >Schedule Your Personalized Astro Guidance</div>
+              style={{ fontSize: '0.7rem', color: 'white', backgroundColor: '#bab9b942' }}
+            >Schedule Your Personalized AastroG Guidance</div>
           </div>
         </button>
 
-       {/* <button className="credit-package" onClick={handleMoonTracker}
+        {/* <button className="credit-package" onClick={handleMoonTracker}
          style={{minHeight: '15rem'}}>
           <div className="service-icon">🌙</div>
           <div className="service-content">
@@ -118,10 +145,24 @@ function Home() {
             >Get Personalized Guidance Now!</div>
           </div>
         </button>*/}
-        
-      </div>
 
-    
+      </div>
+<div className="footer-actions">
+          <button className="action-btn gems-btn" onClick={handleGems}
+          style={{fontSize:'1rem',fontWeight: 'bold', gap: '0.3rem' }}>
+            <span className='dimond'>💎</span>
+            <span>Credits</span>
+          </button>
+
+        
+
+          <button className="action-btn refer-btn" onClick={handleRefer}
+           style={{fontSize:'1rem',fontWeight: 'bold'}}>
+            <span>🎁</span>
+            <span>Refer</span>
+          </button>
+        </div>
+
     </div>
   );
 }

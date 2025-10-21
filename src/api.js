@@ -1338,6 +1338,18 @@ export const deleteFeedback = async (feedbackId, modifiedBy) => {
   }
 };
 
+export const checkUserFeedback = async (userId) => {
+  try {
+    const response = await api.get(`/astro/feedback/check`, {
+      params: { userId }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('❌ Check feedback error:', error);
+    throw error;
+  }
+};
+
 
 
 export { api };

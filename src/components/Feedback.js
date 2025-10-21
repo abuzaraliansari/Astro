@@ -84,6 +84,11 @@ function Feedback() {
         : [...prev, categoryId]
     );
   };
+  const chatContainerStyle = {
+  backgroundImage: 'linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.5)), url(/uploads/chat.jpg)',
+  backgroundSize: 'cover',
+  backgroundPosition: 'center',
+};
 
   const handleFileUpload = (e) => {
     const files = Array.from(e.target.files);
@@ -181,7 +186,7 @@ formData.append('userEmail', user?.email || 'noreply@astroguru.com');
   // Success Screen
   if (showSuccessMessage) {
     return (
-      <div className="fb-success-screen">
+      <div className="fb-success-screen" style={chatContainerStyle}>
         <div className="fb-success-card">
           <div className="fb-success-icon">✨</div>
           <h2 className="fb-success-title">Thank You!</h2>
@@ -200,7 +205,7 @@ formData.append('userEmail', user?.email || 'noreply@astroguru.com');
   // Type Selection Screen
   if (!feedbackType) {
     return (
-      <div className="fb-page-wrapper">
+      <div className="fb-page-wrapper" style={chatContainerStyle}>
         <div className="fb-main-container">
           <div className="fb-top-section">
             <button className="fb-close-button" onClick={() => navigate('/chat')}>×</button>
@@ -209,17 +214,19 @@ formData.append('userEmail', user?.email || 'noreply@astroguru.com');
           </div>
 
           <div className="fb-type-grid">
-            <button className="fb-type-option fb-type-issue" onClick={() => setFeedbackType('issue')}>
+ <button className="credit-package" onClick={() => setFeedbackType('feedback')}>
+              <div className="fb-type-emoji">💬</div>
+              <h3 className="fb-type-heading">Give Feedback</h3>
+              <p className="fb-type-desc">Share your thoughts and help us improve</p>
+            </button>
+
+            <button className="credit-package" onClick={() => setFeedbackType('issue')}>
               <div className="fb-type-emoji">🐛</div>
               <h3 className="fb-type-heading">Report an Issue</h3>
               <p className="fb-type-desc">Having trouble? Let us know what's wrong</p>
             </button>
 
-            <button className="fb-type-option fb-type-feedback" onClick={() => setFeedbackType('feedback')}>
-              <div className="fb-type-emoji">💬</div>
-              <h3 className="fb-type-heading">Give Feedback</h3>
-              <p className="fb-type-desc">Share your thoughts and help us improve</p>
-            </button>
+           
           </div>
         </div>
       </div>
@@ -228,7 +235,7 @@ formData.append('userEmail', user?.email || 'noreply@astroguru.com');
 
   // Form Screen
   return (
-    <div className="fb-page-wrapper">
+    <div className="fb-page-wrapper" style={chatContainerStyle}>
       <div className="fb-main-container">
         <div className="fb-top-section">
           <button className="fb-close-button" onClick={() => setFeedbackType(null)}>×</button>
@@ -238,7 +245,7 @@ formData.append('userEmail', user?.email || 'noreply@astroguru.com');
           <p className="fb-main-subtitle">
             {feedbackType === 'issue' 
               ? 'Help us fix the problem quickly'
-              : 'Help us improve Astro AI for you and others'}
+              : 'Help us improve AastroG AI for you and others'}
           </p>
         </div>
 

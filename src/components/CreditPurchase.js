@@ -71,6 +71,11 @@ function CreditPurchase() {
     }
   }, 100);
   };
+  const chatContainerStyle = {
+  backgroundImage: 'linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.5)), url(/uploads/chat.jpg)',
+  backgroundSize: 'cover',
+  backgroundPosition: 'center',
+};
 
   // ✅ Generate unique transaction ID
   const generateTransactionId = () => {
@@ -269,7 +274,7 @@ function CreditPurchase() {
   // ✅ Loading state
   if (isLoading) {
     return (
-      <div className="credit-purchase-container">
+      <div className="credit-purchase-container"style={chatContainerStyle}>
         <div className="credit-content">
           <div className="loading-spinner">
             <p>Loading credit packages...</p>
@@ -280,11 +285,9 @@ function CreditPurchase() {
   }
 
   return (
-    <div className="credit-purchase-container">
+    <div className="credit-purchase-container"style={chatContainerStyle}>
       {/* Mystical Background Elements */}
-      <div className="bg-element bg-diamond">💎</div>
-      <div className="bg-element bg-star">⭐</div>
-      <div className="bg-element bg-crystal">🔮</div>
+     
       {/* Main Content */}
       <div className="credit-content">
         {/* Title Section */}

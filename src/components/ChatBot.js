@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { saveChatMessage, getChatHistory, deleteChatHistory, getQuickResponse, getUserSettings, updateUserSettings, spendCredits, searchPlaces } from '../api';
+import { saveChatMessage, getChatHistory, deleteChatHistory, getQuickResponse, getUserSettings, updateUserSettings, spendCredits, searchPlaces, checkUserFeedback } from '../api';
 import InsufficientCreditsModal from './InsufficientCreditsModal';
 import ReactMarkdown from 'react-markdown';
 import PROMPTS from '../config/prompts';
@@ -23,6 +23,8 @@ function ChatBot() {
   const messagesEndRef = useRef(null);
   const [lastMessageType, setLastMessageType] = useState(null);
   const analysisButtonsRef = useRef(null);
+  const [hasFeedback, setHasFeedback] = useState(false);
+
 
 
 
@@ -51,7 +53,7 @@ function ChatBot() {
 
     const savedType = user?.settings?.responseType || 'NORMAL';
     console.log('🎬 INITIAL responseType from DB:', savedType);
-    return savedType;
+    return savedType || 'NORMAL';
   });
 
   const [showLanguageDropdown, setShowLanguageDropdown] = useState(false);
@@ -171,7 +173,7 @@ function ChatBot() {
       return messages[Math.floor(Math.random() * messages.length)];
     }
 
-    return "🔮 Guru ji is consulting the cosmic energies... ✨";
+    return "🔮 AastroG is consulting the cosmic energies... ✨";
   };
 
   const scrollToBottom = () => {
@@ -197,6 +199,11 @@ function ChatBot() {
     }
   };
 
+  const chatContainerStyle = {
+    backgroundImage: 'linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.5)), url(/uploads/chat.jpg)',
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+  };
 
   // ✅ NEW: Cycle through response types on click
   const toggleResponseType = async () => {
@@ -557,6 +564,24 @@ function ChatBot() {
     "Main astrology ke through mind, body aur soul ka balance kaise banaun?"
 
   ];
+
+
+  useEffect(() => {
+    const checkFeedbackStatus = async () => {
+      try {
+        const result = await checkUserFeedback(user.userId);
+        setHasFeedback(result.hasFeedback);
+        console.log('📊 Feedback status loaded:', result.hasFeedback);
+      } catch (error) {
+        console.error('❌ Error loading feedback status:', error);
+      }
+    };
+
+    if (user?.userId) {
+      checkFeedbackStatus();
+    }
+  }, [user?.userId]);
+
 
   useEffect(() => {
     scrollToBottom();
@@ -1123,10 +1148,10 @@ function ChatBot() {
       case 'QUICK':
         return { spendTypeId: 1, creditsRequired: 10 };
       case 'DETAILED':
-        return { spendTypeId: 2, creditsRequired: 15 };
+        return { spendTypeId: 2, creditsRequired: 20 };
       case 'NORMAL':
       default:
-        return { spendTypeId: 3, creditsRequired: 20 };
+        return { spendTypeId: 3, creditsRequired: 15 };
     }
   };
   // Handle analysis button clicks
@@ -1267,6 +1292,10 @@ function ChatBot() {
           if (user?.id) {
             localStorage.removeItem(`astroguru_first_question_${user.id}`);
           }
+          setSelectedAnalysisType(PROMPTS.messageTypes.NQ); // Set to "New Question"
+          setLastMessageType(null); // Clear last message type
+          setLastUserMessage(''); // Clear last user message
+          setLastAssistantMessage(''); // Clear last assistant message
           setShowSettings(false);
           console.log('✅ Chat history deleted from database:', response.data.deletedCount, 'messages');
         }
@@ -1284,6 +1313,8 @@ function ChatBot() {
   const fetchUserSettings = async () => {
     if (!user?.userId) {
       console.log('⚠️ No userId, using defaults');
+      setSelectedLanguage('ENGLISH');
+      setResponseType('NORMAL');
       return;
     }
 
@@ -1298,6 +1329,12 @@ function ChatBot() {
         setUserSettings(settings);
         setSelectedLanguage(settings.Language || 'ENGLISH');
         setResponseType(settings.MessageType || 'NORMAL');
+      }
+      else {
+        // ✅ Handle case when no settings returned
+        console.log('No settings returned, using defaults');
+        setSelectedLanguage('ENGLISH');
+        setResponseType('NORMAL');
       }
     } catch (error) {
       console.error('❌ Failed to fetch settings:', error);
@@ -1324,7 +1361,12 @@ function ChatBot() {
         // First message or after free horoscope - auto-select "New"
         messageType = PROMPTS.messageTypes.NQ;
         setSelectedAnalysisType(messageType);
-      } else {
+      }
+      else {
+        // ✅ NEW: Have previous chat but no type selected - auto-select Follow-up
+        console.log('⚡ Auto-selecting Follow-up for continued conversation');
+        messageType = PROMPTS.messageTypes.FLUP;
+        setSelectedAnalysisType(messageType);
         if (analysisButtonsRef.current) {
           analysisButtonsRef.current.classList.add('highlight');
           setTimeout(() => {
@@ -1339,7 +1381,7 @@ function ChatBot() {
         });
 
         // Have previous chat but no type selected - show alert
-        alert('⚠️ Please select a message type (Follow-up, Remedies, Technical, or New Question) before asking Guru Ji');
+        alert('⚠️ Please select a message type (Follow-up, Remedies, Technical, or New Question) before asking AastroG');
         return;
       }
     }
@@ -1448,18 +1490,36 @@ Follow-up Question: ${originalUserMessage}`;
         setLastMessageType(messageType); // ✅ Track message type
 
         // ✅ Increment question count and check for feedback notification
+        // ✅ Increment question count for ALL messages
         setQuestionCount(prev => {
           const newCount = prev + 1;
-          console.log('📊 Question count:', newCount);
+          console.log('📊 Total questions asked:', newCount);
 
-          // Show feedback notification after 3 questions
+          // Check if user has already given feedback before showing popup
           if (newCount === 3) {
-            console.log('🎉 Showing feedback notification after 3 questions');
-            setShowFeedbackNotification(true);
+            checkUserFeedback(user.userId)
+              .then(result => {
+                if (!result.hasFeedback) {
+                  console.log('🎉 Showing feedback notification (user has not given feedback)');
+                  setTimeout(() => {
+                    setShowFeedbackNotification(true);
+                  }, 2000);
+                } else {
+                  console.log('✅ User has already given feedback, skipping notification');
+                }
+              })
+              .catch(error => {
+                console.error('❌ Error checking feedback status:', error);
+                // Show notification anyway if check fails (fallback)
+                setTimeout(() => {
+                  setShowFeedbackNotification(true);
+                }, 2000);
+              });
           }
 
           return newCount;
         });
+
 
 
         // Deduct credits
@@ -1566,31 +1626,31 @@ ${cleanMessageForDB}`;
       // ✅ Store ONLY the actual user message in DB (not the full context)
       // ✅ Store ONLY the actual user message in DB (not the full context)
       // ✅ Send context message to AI, but store clean message in DB
-     // ✅ Build query profile if asking for someone else
-let queryProfile = null;
-if (tempBirthProfile && tempBirthProfile.fullname !== user.fullname) {
-  queryProfile = {
-    name: tempBirthProfile.fullname || tempBirthProfile.name,
-    dob: tempBirthProfile.birthdate,
-    time: tempBirthProfile.birthtime,
-    timezone: tempBirthProfile.timezone || 'IST',
-    place: tempBirthProfile.birthplace,
-    latLong: tempBirthProfile.latitude && tempBirthProfile.longitude
-      ? `${tempBirthProfile.latitude}, ${tempBirthProfile.longitude}`
-      : 'unknown'
-  };
-  console.log('👥 Direct analysis for:', queryProfile.name);
-}
+      // ✅ Build query profile if asking for someone else
+      let queryProfile = null;
+      if (tempBirthProfile && tempBirthProfile.fullname !== user.fullname) {
+        queryProfile = {
+          name: tempBirthProfile.fullname || tempBirthProfile.name,
+          dob: tempBirthProfile.birthdate,
+          time: tempBirthProfile.birthtime,
+          timezone: tempBirthProfile.timezone || 'IST',
+          place: tempBirthProfile.birthplace,
+          latLong: tempBirthProfile.latitude && tempBirthProfile.longitude
+            ? `${tempBirthProfile.latitude}, ${tempBirthProfile.longitude}`
+            : 'unknown'
+        };
+        console.log('👥 Direct analysis for:', queryProfile.name);
+      }
 
-// ✅ Send context message to AI, but store clean message in DB
-const response = await saveChatMessage(
-  user.id,
-  cleanMessageForDB,
-  birthProfile,
-  messageSettings,
-  aiContextMessage,
-  queryProfile  // ✅ NEW: Pass query profile
-);
+      // ✅ Send context message to AI, but store clean message in DB
+      const response = await saveChatMessage(
+        user.id,
+        cleanMessageForDB,
+        birthProfile,
+        messageSettings,
+        aiContextMessage,
+        queryProfile  // ✅ NEW: Pass query profile
+      );
 
       if (response.success) {
         push({
@@ -1604,6 +1664,38 @@ const response = await saveChatMessage(
         setLastUserMessage(displayMessage); // ✅ Store clean message
         setLastAssistantMessage(response.reply);
         setLastMessageType(analysisType);
+
+        // ✅ Increment question count for ALL messages
+        setQuestionCount(prev => {
+          const newCount = prev + 1;
+          console.log('📊 Total questions asked:', newCount);
+
+          // Check if user has already given feedback before showing popup
+          if (newCount === 3) {
+            checkUserFeedback(user.userId)
+              .then(result => {
+                if (!result.hasFeedback) {
+                  console.log('🎉 Showing feedback notification (user has not given feedback)');
+                  setTimeout(() => {
+                    setShowFeedbackNotification(true);
+                  }, 2000);
+                } else {
+                  console.log('✅ User has already given feedback, skipping notification');
+                }
+              })
+              .catch(error => {
+                console.error('❌ Error checking feedback status:', error);
+                // Show notification anyway if check fails (fallback)
+                setTimeout(() => {
+                  setShowFeedbackNotification(true);
+                }, 2000);
+              });
+          }
+
+          return newCount;
+        });
+
+
 
         // Deduct credits
         await spendCredits(
@@ -1644,7 +1736,7 @@ const response = await saveChatMessage(
   // ✅ Show loading if prompts are still loading
 
   return (
-    <div className="chatbot-container">
+    <div className="chatbot-container" style={chatContainerStyle} >
       {/* Credit Warning Banner */}
       {user?.credits < 10 && (
         <div className="credit-warning" onClick={handleGetCredits}>
@@ -1658,7 +1750,7 @@ const response = await saveChatMessage(
 
 
       {/* Main Chat Area */}
-      <div className="chat-area">
+      <div className="chat-area" >
         <div className="chat-header">
           <span>{PROMPTS.greetings[selectedLanguage] || PROMPTS.greetings.ENGLISH}</span>
 
@@ -1723,14 +1815,16 @@ const response = await saveChatMessage(
                       onClick={() => setShowResponseTypeDropdown(!showResponseTypeDropdown)}
                     >
                       <span className="language-icon">
-                        {responseType === 'QUICK' && '⚡'}
-                        {responseType === 'NORMAL' && '💬'}
-                        {responseType === 'DETAILED' && '📖'}
+                        {/* ✅ Add fallback for icon display */}
+                        {(responseType || 'NORMAL') === 'QUICK' ? '⚡' :
+                          (responseType || 'NORMAL') === 'NORMAL' ? '📝' :
+                            (responseType || 'NORMAL') === 'DETAILED' ? '📚' : '📝'}
                       </span>
                       <span className="language-text">
-                        {responseType === 'QUICK' && 'Quick'}
-                        {responseType === 'NORMAL' && 'Normal'}
-                        {responseType === 'DETAILED' && 'Detailed'}
+                        {/* ✅ Add fallback for text display */}
+                        {(responseType || 'NORMAL') === 'QUICK' ? 'Quick' :
+                          (responseType || 'NORMAL') === 'NORMAL' ? 'Normal' :
+                            (responseType || 'NORMAL') === 'DETAILED' ? 'Detailed' : 'Normal'}
                       </span>
                       <span className={`language-arrow ${showResponseTypeDropdown ? 'open' : ''}`}>▼</span>
                     </button>
@@ -1896,19 +1990,26 @@ const response = await saveChatMessage(
                   // ✅ If a button is selected, show only that button
                   if (selectedAnalysisType) {
                     return (
-                      <button
-                        className={`analysis-btn ${selectedAnalysisType === PROMPTS.messageTypes.FLUP ? 'followup-btn' :
-                          selectedAnalysisType === PROMPTS.messageTypes.RM ? 'remedy-btn' :
-                            selectedAnalysisType === PROMPTS.messageTypes.TL ? 'technical-btn' :
-                              'new-btn'
-                          } selected`}
-                        onClick={() => setSelectedAnalysisType(null)}
-                        title="Click to unselect and see all options"
-                      >
-                        {selectedAnalysisType === PROMPTS.messageTypes.FLUP && labels.FOLLOWUP}
-                        {selectedAnalysisType === PROMPTS.messageTypes.NQ && labels.NEW}
-                        <span className="unselect-icon">✕</span>
-                      </button>
+
+                      <div className="selected-button-wrapper">
+                        <button
+                          className={`analysis-btn ${selectedAnalysisType === PROMPTS.messageTypes.FLUP ? 'followup-btn' :
+                            selectedAnalysisType === PROMPTS.messageTypes.RM ? 'remedy-btn' :
+                              selectedAnalysisType === PROMPTS.messageTypes.TL ? 'technical-btn' :
+                                'new-btn'
+                            } selected`}
+                          onClick={() => setSelectedAnalysisType(null)}
+                          title="Click to unselect and see all options"
+                        >
+                          <span className="button-label">
+                            {selectedAnalysisType === PROMPTS.messageTypes.FLUP && labels.FOLLOWUP}
+                            {selectedAnalysisType === PROMPTS.messageTypes.RM && labels.REMEDIES}
+                            {selectedAnalysisType === PROMPTS.messageTypes.TL && labels.TECHNICAL}
+                            {selectedAnalysisType === PROMPTS.messageTypes.NQ && labels.NEW}
+                          </span>
+                          <span className="unselect-icon">✕</span>
+                        </button>
+                      </div>
                     );
                   }
 
@@ -1934,7 +2035,7 @@ const response = await saveChatMessage(
                         {labels.TECHNICAL}
                       </button>
                       <button
-                        className="analysis-btn new-btn"
+                        className="analysis-btn new-btn new-question-full"
                         onClick={() => setSelectedAnalysisType(PROMPTS.messageTypes.NQ)}
                       >
                         {labels.NEW}
