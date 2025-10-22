@@ -47,7 +47,7 @@ function ChatBot() {
 
 
   const [selectedLanguage, setSelectedLanguage] = useState(
-    user?.settings?.Language || 'ENGLISH'
+    user?.settings?.Language || 'Hinglish'
   );
   const [userSettings, setUserSettings] = useState(null);
 
@@ -1162,12 +1162,40 @@ function ChatBot() {
     }
   };
 
-
+  // ✅ Clear draft function
   const clearDraft = () => {
     if (user?.id) {
-      localStorage.removeItem(`astroguru_draft_${user.id}`);
+      const draftKey = `astroguru_draft_${user.id}`;
+      localStorage.removeItem(draftKey);
+      setInputValue('');
+      console.log('🗑️ Draft cleared');
     }
   };
+
+
+  // ✅ Load draft message on component mount
+  useEffect(() => {
+    if (user?.id) {
+      const draftKey = `astroguru_draft_${user.id}`;
+      const savedDraft = localStorage.getItem(draftKey);
+
+      if (savedDraft) {
+        console.log('📝 Loaded draft message:', savedDraft);
+        setInputValue(savedDraft);
+      }
+    }
+  }, [user?.id]);
+
+  // ✅ Auto-save draft whenever input changes
+  useEffect(() => {
+    if (user?.id && inputValue.trim()) {
+      const draftKey = `astroguru_draft_${user.id}`;
+      localStorage.setItem(draftKey, inputValue);
+      console.log('💾 Draft saved:', inputValue.substring(0, 30) + '...');
+    }
+  }, [inputValue, user?.id]);
+
+
 
   // Get credits based on response type
   const getCreditsByResponseType = (responseTypeValue) => {
@@ -1340,7 +1368,7 @@ function ChatBot() {
   const fetchUserSettings = async () => {
     if (!user?.userId) {
       console.log('⚠️ No userId, using defaults');
-      setSelectedLanguage('ENGLISH');
+      setSelectedLanguage('Hinglish');
       setResponseType('NORMAL');
       return;
     }
@@ -1354,51 +1382,54 @@ function ChatBot() {
         console.log('✅ Settings loaded:', settings);
 
         setUserSettings(settings);
-        setSelectedLanguage(settings.Language || 'ENGLISH');
+        setSelectedLanguage(settings.Language || 'Hinglish');
         setResponseType(settings.MessageType || 'NORMAL');
       }
       else {
         // ✅ Handle case when no settings returned
         console.log('No settings returned, using defaults');
-        setSelectedLanguage('ENGLISH');
+        setSelectedLanguage('Hinglish');
         setResponseType('NORMAL');
       }
     } catch (error) {
       console.error('❌ Failed to fetch settings:', error);
-      setSelectedLanguage('ENGLISH');
+      setSelectedLanguage('Hinglish');
       setResponseType('NORMAL');
     }
   };
   // Handle confirmation - Auto-select Follow-up and send
   const handleConfirmFollowUp = () => {
-    console.log('✅ User confirmed - Auto-selecting Follow-up');
-    setSelectedAnalysisType(PROMPTS.messageTypes.FLUP);
-    setShowTypeConfirmDialog(false);
+  console.log('✅ User confirmed - Auto-selecting Follow-up and sending immediately');
+  setShowTypeConfirmDialog(false);
+  
+  // ✅ Send directly with Follow-up type (bypass validation)
+  setTimeout(() => {
+    handleSendWithType(PROMPTS.messageTypes.FLUP);
+  }, 100);
+};
 
-    // Auto-send the message with Follow-up type
-    setTimeout(() => {
-      handleSend();
-    }, 100);
-  };
 
-  // Handle cancel - Scroll to message type buttons
+  // Handle cancel - Scroll to message type buttons (NO auto-select)
   const handleCancelTypeSelection = () => {
     console.log('❌ User cancelled - Scrolling to message type buttons');
     setShowTypeConfirmDialog(false);
 
-    // Scroll to analysis buttons
-    if (analysisButtonsRef.current) {
-      analysisButtonsRef.current.scrollIntoView({
-        behavior: 'smooth',
-        block: 'center'
-      });
+    // ✅ DO NOT auto-select any button - let user choose
+    // Just scroll to the buttons
+    setTimeout(() => {
+      if (analysisButtonsRef.current) {
+        analysisButtonsRef.current.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center'
+        });
 
-      // Highlight the buttons
-      analysisButtonsRef.current.classList.add('highlight');
-      setTimeout(() => {
-        analysisButtonsRef.current?.classList.remove('highlight');
-      }, 3000);
-    }
+        // Highlight the buttons to draw attention
+        analysisButtonsRef.current.classList.add('highlight');
+        setTimeout(() => {
+          analysisButtonsRef.current?.classList.remove('highlight');
+        }, 3000);
+      }
+    }, 100); // Small delay to ensure modal closes first
   };
 
   // ✅ UPDATED: Backend-based religion-specific Guru messages
@@ -1407,10 +1438,164 @@ function ChatBot() {
     return getRandomTypingMessage(religion);
   };
 
+  
+// ✅ NEW: Send message with specific type (bypasses dialog)
+async function handleSendWithType(forcedMessageType) {
+  if (!inputValue.trim()) return;
+  
+  const originalUserMessage = inputValue.trim();
+  
+  // Clear draft after sending
+  if (user?.id) {
+    const draftKey = `astroguru_draft_${user.id}`;
+    localStorage.removeItem(draftKey);
+    console.log('🗑️ Draft cleared after sending');
+  }
+
+  // ✅ Use forced type (skip all validation)
+  const messageType = forcedMessageType;
+
+  // Build AI context message (full) and DB message (clean)
+  let aiContextMessage = originalUserMessage;
+  let dbMessage = originalUserMessage;
+
+  // For followup, include chat history context for AI but save clean message
+  if (messageType === PROMPTS.messageTypes.FLUP && lastUserMessage && lastAssistantMessage) {
+    aiContextMessage = `Previous Question: "${lastUserMessage}"
+Previous Response: "${lastAssistantMessage.substring(0, 200)}..."
+
+Follow-up Question: ${originalUserMessage}`;
+    dbMessage = originalUserMessage;
+  }
+
+  // Show user's original message in chat
+  const userMessage = {
+    message: originalUserMessage,
+    direction: 'outgoing',
+    sender: 'user',
+    timestamp: new Date().toISOString()
+  };
+
+  // If it's New, clear chat first, then add message
+  if (messageType === PROMPTS.messageTypes.NQ) {
+    setMessages([userMessage]);
+  } else {
+    push(userMessage);
+  }
+
+  // Build profile
+  const profile = tempBirthProfile || user;
+  const birthProfile = {
+    name: profile?.fullname || profile?.fullname || profile?.givenname || 'User',
+    dob: profile?.birthdate || profile?.birthdate || 'unknown',
+    time: profile?.birthtime || profile?.birthtime || 'unknown',
+    timezone: profile?.timezone || 'IST',
+    place: profile?.birthplace || profile?.birthplace || 'unknown',
+    latLong: (profile?.latitude && profile?.longitude) ? `${profile.latitude}, ${profile.longitude}` : 'unknown',
+    religion: profile?.religion || 'Hindu'
+  };
+
+  const maxResponseLength = messageType === PROMPTS.messageTypes.TL ? 250 : PROMPTS.responseLength[responseType]?.maxWords || 150;
+  
+  const messageSettings = {
+    questionType: messageType,
+    language: selectedLanguage,
+    maxResponseLength: maxResponseLength
+  };
+
+  console.log('📤 Sending:', originalUserMessage, messageType, messageSettings);
+
+  setInputValue('');
+  setIsTyping(true);
+  setFilteredSuggestions([]);
+
+  try {
+    const { spendTypeId, creditsRequired } = getCreditsByResponseType(responseType);
+
+    if (user.credits < creditsRequired) {
+      setRequiredCredits(creditsRequired);
+      setShowInsufficientModal(true);
+      setIsTyping(false);
+      if (messageType === PROMPTS.messageTypes.NQ) {
+        setMessages([]);
+      } else {
+        setMessages(prev => prev.slice(0, -1));
+      }
+      setInputValue(originalUserMessage);
+      return;
+    }
+
+    const response = await saveChatMessage(
+      user.id,
+      dbMessage,
+      birthProfile,
+      messageSettings,
+      aiContextMessage,
+      null
+    );
+
+    if (response.success) {
+      const aiMessage = {
+        message: response.reply,
+        direction: 'incoming',
+        sender: 'assistant',
+        timestamp: new Date().toISOString()
+      };
+      push(aiMessage);
+
+      setLastUserMessage(originalUserMessage);
+      setLastAssistantMessage(response.reply);
+      setLastMessageType(messageType);
+
+      setQuestionCount(prev => {
+        const newCount = prev + 1;
+        console.log('📊 Total questions asked:', newCount);
+
+        if (newCount === 3) {
+          checkUserFeedback(user.userId)
+            .then(result => {
+              if (!result.hasFeedback) {
+                console.log('🔔 Showing feedback notification');
+                setTimeout(() => setShowFeedbackNotification(true), 2000);
+              }
+            })
+            .catch(error => {
+              console.error('❌ Error checking feedback status:', error);
+              setTimeout(() => setShowFeedbackNotification(true), 2000);
+            });
+        }
+        return newCount;
+      });
+
+      await spendCredits(user.userId, spendTypeId, `${messageType}: ${originalUserMessage.substring(0, 50)}`, null);
+      await refreshCredits();
+
+      setSelectedAnalysisType(null);
+    }
+  } catch (error) {
+    console.error('❌ Error:', error);
+    push({
+      message: 'Sorry, something went wrong. Please try again.',
+      direction: 'incoming',
+      sender: 'assistant',
+      timestamp: new Date().toISOString()
+    });
+  } finally {
+    setIsTyping(false);
+  }
+}
+
+
   async function handleSend() {
     if (!inputValue.trim()) return;
 
     const originalUserMessage = inputValue.trim();
+    // ✅ Clear draft after sending
+    if (user?.id) {
+      const draftKey = `astroguru_draft_${user.id}`;
+      localStorage.removeItem(draftKey);
+      console.log('🗑️ Draft cleared after sending');
+    }
 
     // ✅ Auto-select "New" if no type selected and no previous chat
     let messageType = selectedAnalysisType;
@@ -1421,47 +1606,38 @@ function ChatBot() {
         setSelectedAnalysisType(messageType);
       }
       else {
-        // ✅ NEW: Have previous chat but no type selected - auto-select Follow-up
-        console.log('⚡ Auto-selecting Follow-up for continued conversation');
-        messageType = PROMPTS.messageTypes.FLUP;
-        setSelectedAnalysisType(messageType);
-        if (analysisButtonsRef.current) {
-          analysisButtonsRef.current.classList.add('highlight');
-          setTimeout(() => {
-            analysisButtonsRef.current?.classList.remove('highlight');
-          }, 3000);
-        }
+        // ✅ Have previous chat but no type selected - show dialog WITHOUT auto-selecting
+        console.log('⚡ No message type selected - showing confirmation dialog');
 
-        // Scroll to buttons
-        analysisButtonsRef.current?.scrollIntoView({
-          behavior: 'smooth',
-          block: 'center'
-        });
-
-        // Have previous chat but no type selected - show alert
+        // ❌ DO NOT auto-select Follow-up here
+        // Show confirmation dialog FIRST
         setShowTypeConfirmDialog(true);
         return;
       }
     }
 
-    // Build the message based on selected analysis type
-    let finalMessage = originalUserMessage;
 
-    // For followup, include chat history context
+    // ✅ Build AI context message (full) and DB message (clean)
+    let aiContextMessage = originalUserMessage;  // What we send to AI
+    let dbMessage = originalUserMessage;         // What we save to DB
+
+    // For followup, include chat history context for AI but save clean message
     if (messageType === PROMPTS.messageTypes.FLUP && lastUserMessage && lastAssistantMessage) {
-      finalMessage = `Previous Question: "${lastUserMessage}"
+      aiContextMessage = `Previous Question: "${lastUserMessage}"
 Previous Response: "${lastAssistantMessage.substring(0, 200)}..."
 
 Follow-up Question: ${originalUserMessage}`;
+      dbMessage = originalUserMessage;  // ✅ Save ONLY the actual question
     }
 
     // Show user's original message in chat
     const userMessage = {
-      message: originalUserMessage,
+      message: originalUserMessage,  // ✅ Display clean message in UI
       direction: 'outgoing',
       sender: 'user',
       timestamp: new Date().toISOString()
     };
+
 
     // If it's "New", clear chat first, then add message
     if (messageType === PROMPTS.messageTypes.NQ) {
@@ -1497,7 +1673,7 @@ Follow-up Question: ${originalUserMessage}`;
 
     console.log('📤 Sending:', {
       originalUserMessage,
-      finalMessage,
+      // finalMessage,
       messageType,
       messageSettings
     });
@@ -1525,12 +1701,16 @@ Follow-up Question: ${originalUserMessage}`;
       }
 
       // Send message with context
+      // ✅ Send clean message to DB, full context to AI
       const response = await saveChatMessage(
         user.id,
-        finalMessage,
+        dbMessage,           // ✅ Save clean message to DB
         birthProfile,
-        messageSettings
+        messageSettings,
+        aiContextMessage,    // ✅ Send full context to AI
+        null                 // queryProfile (none for regular messages)
       );
+
 
       if (response.success) {
         const aiMessage = {
@@ -1631,16 +1811,14 @@ Follow-up Question: ${originalUserMessage}`;
       };
 
 
-      const contextMessage = `Previous Question: "${lastUserMessage}"
-Previous Response: "${lastAssistantMessage.substring(0, 200)}..."
 
-Please provide ${analysisType === PROMPTS.messageTypes.RM ? 'specific remedies' : 'detailed technical analysis'} for the above.`;
+      // ✅ Clean message for DB
+      const dbMessage = analysisType === PROMPTS.messageTypes.RM
+        ? "Show me remedies"
+        : "Show me technical analysis";
 
-
-      const displayMessage = analysisType === PROMPTS.messageTypes.RM
-        ? 'Here are the remedies'
-        : 'Here is the technical analysis';
-
+      // Display message for UI
+      const displayMessage = dbMessage;
 
       push({
         message: analysisType === PROMPTS.messageTypes.RM
@@ -1701,14 +1879,16 @@ ${cleanMessageForDB}`;
       }
 
       // ✅ Send context message to AI, but store clean message in DB
+      // ✅ Send full context to AI, but save clean message to DB
       const response = await saveChatMessage(
         user.id,
-        cleanMessageForDB,
+        dbMessage,           // ✅ Save "Show me remedies" or "Show me technical analysis"
         birthProfile,
         messageSettings,
-        aiContextMessage,
-        queryProfile  // ✅ NEW: Pass query profile
+        aiContextMessage,    // ✅ Send full context with previous Q&A
+        queryProfile
       );
+
 
       if (response.success) {
         push({
@@ -2675,7 +2855,7 @@ ${cleanMessageForDB}`;
           <div className="scroll-picker-modal">
             {/* Header */}
             <div className="scroll-picker-header">
-              <h3>Select Birth Time</h3>
+              <h3>Select Birth Time In 24H</h3>
             </div>
 
             {/* Scroll Wheels Content */}

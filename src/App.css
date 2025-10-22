@@ -880,13 +880,15 @@ body.modal-open {
 .scroll-wheels {
   display: flex;
   gap: 12px;
-  justify-content: space-between;
+  justify-content: center;
+
 }
 
 .scroll-wheel {
   flex: 1;
   text-align: center;
   position: relative;
+  max-width: 30%;
 }
 
 .wheel-label {

@@ -992,7 +992,7 @@ useEffect(() => {
                     <div className="scroll-picker-modal">
                         {/* Header */}
                         <div className="scroll-picker-header">
-                            <h3>Select Birth Time</h3>
+                            <h3>Select Birth Time In 24H</h3>
                         </div>
 
                         {/* Scroll Wheels Content */}

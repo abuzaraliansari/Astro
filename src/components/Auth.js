@@ -423,7 +423,7 @@ Thank you! 🙏`;
         setGoogleUserInfo(null);
 
         // Show success message
-        setMessage('Registration successful! Logging you in...');
+       // setMessage('Registration successful! Logging you in...');
 
         // ✅ CORRECT: Use googleCredential (from state) to auto-login
         setTimeout(async () => {
@@ -436,18 +436,18 @@ Thank you! 🙏`;
             // ✅ FIX: Clear message after successful login
             setTimeout(() => {
               setMessage('');
-            }, 1500);
+            }, 100);
 
           } catch (loginError) {
             console.error('Auto-login failed:', loginError);
             // Only show error if login actually fails
-            setMessage('✓ Registration successful! Please log in manually.');
+            //setMessage('✓ Registration successful! Please log in manually.');
             setTimeout(() => {
               setIsSignup(false); // Switch to login mode
               setMessage('');
-            }, 2000);
+            }, 200);
           }
-        }, 1000);
+        }, 100);
 
       } else {
         console.error('❌ Registration failed - success: false');
@@ -496,7 +496,7 @@ Thank you! 🙏`;
             console.log('Switching to login mode...');
             setIsSignup(false);
             setMessage('Account exists. Switched to login mode.');
-          }, 3000);
+          }, 300);
 
         } else {
           console.error('❌ Other error:', errorData.message);
@@ -960,7 +960,7 @@ Thank you! 🙏`;
         setUser(response.data.user);
         setMessage(response.data.message);
         if (onLoginSuccess) onLoginSuccess(response.data.user);
-        setTimeout(() => navigate('/home'), 1500);
+        setTimeout(() => navigate('/home'), 150);
       }
     } catch (err) {
       console.error('❌ Login error:', err);
@@ -976,7 +976,7 @@ Thank you! 🙏`;
           setTimeout(() => {
             setIsSignup(true);
             setMessage('Switched to signup mode. Please create an account first.');
-          }, 3000);
+          }, 300);
         } else {
           setMessage(`❌ ${errorData.message || 'Login failed'}`);
         }
@@ -1038,7 +1038,7 @@ Thank you! 🙏`;
           setShowBirthDetailsPopup(false);
           clearBirthDetails();
           setGoogleCredential(null);
-          setTimeout(() => navigate('/home'), 2000);
+          setTimeout(() => navigate('/home'), 200);
         }
       }
     } catch (err) {
@@ -1060,7 +1060,7 @@ Thank you! 🙏`;
           setTimeout(() => {
             setIsSignup(false);
             setMessage('Account exists. Switched to login mode.');
-          }, 3000);
+          }, 300);
         } else {
           setMessage(`❌ ${errorData.message || 'Signup failed'}`);
         }
@@ -1111,7 +1111,7 @@ Thank you! 🙏`;
     if (showMessagePopup && message && (message.includes('✅') || message.includes('successful'))) {
       const timer = setTimeout(() => {
         setShowMessagePopup(false);
-      }, 3000);
+      }, 300);
       return () => clearTimeout(timer);
     }
   }, [showMessagePopup, message]);
@@ -1155,7 +1155,7 @@ Thank you! 🙏`;
     const loadCountries = async () => {
       try {
         setLoadingCountries(true);
-        console.log('🌍 Loading countries from backend...');
+        //console.log('🌍 Loading countries from backend...');
 
         // Use getAllCountries() - returns all countries with phone codes, flags, etc.
         const response = await getAllCountries();
@@ -1878,7 +1878,7 @@ Thank you! 🙏`;
           <div className="scroll-picker-modal">
             {/* Header */}
             <div className="scroll-picker-header">
-              <h3>Select Birth Time</h3>
+              <h3>Select Birth Time n 24H</h3>
             </div>
 
             {/* Scroll Wheels Content */}
