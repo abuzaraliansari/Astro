@@ -184,41 +184,41 @@ const PROMPTS = {
   // Typing indicator messages
   typing: {
     ISLAM: [
-      "🕌 AastroG is seeking Allah's guidance for you... ✨",
-      "📿 AastroG is consulting the divine wisdom, Insha'Allah... 🌙",
-      "⭐ AastroG is reading your cosmic patterns with Allah's blessings... 🔥",
-      "🧘 AastroG is in spiritual meditation for your question... 🌸"
+      "AastroG is seeking Allah's guidance for you...",
+      "AastroG is consulting the divine wisdom, Insha'Allah...",
+      "AastroG is reading your cosmic patterns with Allah's blessings...",
+      "AastroG is in spiritual meditation for your question..."
     ],
     CHRISTIANITY: [
-      "⛪ AastroG is seeking God's guidance for you... ✨",
-      "📿 AastroG is praying for divine wisdom... 🌙",
-      "⭐ AastroG is reading your celestial chart with God's grace... 🔥",
-      "🧘 AastroG is in prayer for your spiritual question... 🌸"
+      "AastroG is seeking God's guidance for you...",
+      "AastroG is praying for divine wisdom...",
+      "AastroG is reading your celestial chart with God's grace...",
+      "AastroG is in prayer for your spiritual question..."
     ],
     SIKHISM: [
-      "🏛️ AastroG is seeking Waheguru's guidance... ✨",
-      "📿 AastroG is consulting with divine wisdom... 🌙",
-      "⭐ AastroG is analyzing your cosmic energy with Waheguru's blessings... 🔥",
-      "🧘 AastroG is in meditation with the Guru's teachings... 🌸"
+      "AastroG is seeking Waheguru's guidance...",
+      "AastroG is consulting with divine wisdom...",
+      "AastroG is analyzing your cosmic energy with Waheguru's blessings...",
+      "AastroG is in meditation with the Guru's teachings..."
     ],
     BUDDHISM: [
-      "🏛️ AastroG is seeking Buddha's wisdom for you... ✨",
-      "📿 AastroG is meditating on your karmic patterns... 🌙",
-      "⭐ AastroG is following the path of enlightenment... 🔥",
-      "🧘 AastroG is in mindful meditation for your question... 🌸"
+      "AastroG is seeking Buddha's wisdom for you...",
+      "AastroG is meditating on your karmic patterns...",
+      "AastroG is following the path of enlightenment...",
+      "AastroG is in mindful meditation for your question..."
     ],
     HINDU: [
-      "🔮 AastroG is consulting the ancient Vedic texts... ✨",
-      "🌟 AastroG is reading your celestial birth chart... 🌙",
-      "⭐ AastroG is analyzing your cosmic energy patterns... 🔥",
-      "🧘 AastroG is meditating on your divine question... 🌸"
+      "AastroG is consulting the ancient Vedic texts...",
+      "AastroG is reading your celestial birth chart...",
+      "AastroG is analyzing your cosmic energy patterns...",
+      "AastroG is meditating on your divine question... "
     ]
   },
   
    greetings: {
-    ENGLISH: "Welcome! Your cosmic journey with AastroG begins... ✨",
-    HINDI: "स्वागत है! आपकी ज्योतिषीय यात्रा आस्ट्रोजी के साथ शुरू होती है... ✨",
-    HINGLISH: "Namaste! Aapki cosmic journey AastroG ke saath shuru hoti hai... ✨"
+    ENGLISH: "Welcome! Your cosmic journey with AastroG begins...",
+    HINDI: "स्वागत है! आपकी ज्योतिषीय यात्रा आस्ट्रोजी के साथ शुरू होती है...",
+    HINGLISH: "Namaste! Aapki cosmic journey AastroG ke saath shuru hoti hai..."
   },
 
   // Add this after the greetings section

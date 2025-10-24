@@ -32,6 +32,9 @@ import ContactUs  from './components/ContactUs';
 
 import './App.css';
 
+import { StatusBar } from '@capacitor/status-bar';
+import { Capacitor } from '@capacitor/core';
+
 const Layout = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -42,6 +45,73 @@ const Layout = ({ children }) => {
   const isTermsPage = location.pathname === '/terms'; // ✅ NEW: Identify terms page
   const isPublicPage = isAuthPage || isTermsPage; 
 
+// ✅ IMPROVED: Detect if running as native app (React Native WebView)
+
+
+useEffect(() => {
+  const detectNativeApp = () => {
+    const ua = navigator.userAgent || navigator.vendor || window.opera;
+    
+    console.log('🔍 User Agent:', ua);
+    
+    // Method 1: Check for React Native WebView
+    if (window.ReactNativeWebView) {
+      console.log('✅ Detected: React Native WebView');
+      return true;
+    }
+    
+    // Method 2: Check for standalone PWA mode
+    if (window.navigator.standalone === true || 
+        window.matchMedia('(display-mode: standalone)').matches) {
+      console.log('✅ Detected: Standalone PWA mode');
+      return true;
+    }
+    
+    // Method 3: Check User Agent for WebView indicators
+    const webViewPatterns = [
+      /wv/i,                    // Generic WebView
+      /WebView/i,               // Explicit WebView
+      /Android.*Version\/.*Chrome/i,  // Android WebView
+      /; wv\)/i,                // Android WebView specific
+      /iPhone.*AppleWebKit(?!.*Safari)/i  // iOS WebView (no Safari)
+    ];
+    
+    const isWebView = webViewPatterns.some(pattern => pattern.test(ua));
+    if (isWebView) {
+      console.log('✅ Detected: Mobile WebView via User Agent');
+      return true;
+    }
+    
+    // Method 4: Check for mobile browser that's NOT Chrome/Safari
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(ua);
+    const isStandardBrowser = /Chrome|CriOS|Safari/i.test(ua) && !/wv/i.test(ua);
+    
+    if (isMobile && !isStandardBrowser) {
+      console.log('✅ Detected: Non-standard mobile browser (likely app)');
+      return true;
+    }
+    
+    console.log('❌ Not detected as native app');
+    return false;
+  };
+
+  const isNative = detectNativeApp();
+  
+  if (isNative) {
+    console.log('📱 NATIVE APP MODE - Applying safe area padding');
+    document.documentElement.classList.add('native-app-mode');
+    document.body.classList.add('native-app-mode');
+  } else {
+    console.log('🌐 WEB BROWSER MODE - Using normal padding');
+    document.documentElement.classList.remove('native-app-mode');
+    document.body.classList.remove('native-app-mode');
+  }
+  
+  // Log final state
+  console.log('HTML classes:', document.documentElement.className);
+}, []);
+
+  
   useEffect(() => {
     if (loading) return; // ⏳ Wait until auth state is ready
  if (isPublicPage) return;
@@ -97,6 +167,22 @@ const Layout = ({ children }) => {
       return () => window.removeEventListener('popstate', handlePopState);
     }
   }, [isAuthPage, user]);
+
+
+  useEffect(() => {
+  // Only run on native platforms
+  if (Capacitor.isNativePlatform()) {
+    console.log('📱 Running on native platform - configuring status bar');
+    
+    // Configure status bar
+    StatusBar.setStyle({ style: 'DARK' });
+    StatusBar.setBackgroundColor({ color: '#1a1a2e' });
+    StatusBar.setOverlaysWebView({ overlay: false }); // ✅ KEY: Don't overlay
+    
+    // Apply safe area class
+    document.documentElement.classList.add('native-app-mode');
+  }
+}, []);
 
   // 🕓 Show loading screen while auth is initializing
   if (loading) {

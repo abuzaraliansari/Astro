@@ -38,8 +38,8 @@ body.modal-open {
 }
 
 .main-content.with-header-footer {
-  padding-top: 20px;
-  /*padding-bottom: 100px;*/
+  /*padding-top: 20px;
+  padding-bottom: 100px;*/
 }
 
 /* ================================
@@ -314,10 +314,9 @@ body.modal-open {
 /* Features Preview */
 .features-preview {
   display: flex;
- justify-content: center;
- align-items: center;
+  justify-content: center;
+  align-items: center;
   margin-bottom: 20px;
-
 }
 
 .feature-preview {
@@ -354,9 +353,9 @@ body.modal-open {
 .preview-text {
   font-size: 13px;
   font-weight: 600;
-    background-color: rgba(255, 255, 255, 0.1);
-    padding: 0.2rem;
-    border-radius: 20px;
+  background-color: rgba(255, 255, 255, 0.1);
+  padding: 0.2rem;
+  border-radius: 20px;
 }
 
 .auth-info-text {
@@ -881,7 +880,6 @@ body.modal-open {
   display: flex;
   gap: 12px;
   justify-content: center;
-
 }
 
 .scroll-wheel {
@@ -1962,8 +1960,8 @@ body.modal-open {
    ================================ */
   @media (max-width: 900px) {
     .main-content.with-header-footer {
-      padding-top: 10px;
-      /* padding-bottom: 90px;*/
+      /*padding-top: 10px;
+       padding-bottom: 90px;*/
     }
 
     .app-header {
@@ -1982,8 +1980,8 @@ body.modal-open {
 
   @media (max-width: 768px) {
     .main-content.with-header-footer {
-      padding-top: 10px;
-      /*padding-bottom: 85px;*/
+      /*padding-top: 10px;
+      padding-bottom: 85px;*/
     }
 
     .app-header {
@@ -1996,7 +1994,7 @@ body.modal-open {
     }
 
     .credits-display {
-      padding: 2px 10px;
+      padding: 0px 10px;
       min-width: none;
     }
 
@@ -2069,8 +2067,8 @@ body.modal-open {
 
 @media (max-width: 480px) {
   .main-content.with-header-footer {
-    padding-top: 10px;
-    /* padding-bottom: 80px; */
+    /*padding-top: 10px;
+     padding-bottom: 80px; */
   }
   .form-field-country-small {
     flex: 0 0 70px;
@@ -2111,6 +2109,7 @@ body.modal-open {
 
   .chatbot-container {
     padding: 20px;
+    padding-top: 40px;
   }
 
   .birth-details-modal,
@@ -7011,7 +7010,7 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   background: rgba(138, 43, 226, 0.3);
   border: 1px solid rgba(138, 43, 226, 0.5);
   border-radius: 20px;
-  padding: 5px 10px;
+  padding: 0px 10px;
   display: flex;
   align-items: center;
   gap: 4px;
@@ -7595,7 +7594,7 @@ select.profile-input option {
   }
 
   .credits-display {
-    padding: 2px 10px;
+    padding: 0px 10px;
   }
 
   .credits-icon {
@@ -7761,7 +7760,6 @@ select.profile-input option {
   right: 0;
   bottom: 0;
   width: 100vw;
-  height: calc(100vh - 75px);
   display: flex;
   flex-direction: column;
   font-family: "Inter", "Segoe UI", Arial, sans-serif;
@@ -7772,6 +7770,7 @@ select.profile-input option {
   z-index: 1;
   gap: 8px;
   margin-bottom: 3rem;
+  height: calc(100vh - 75px);
 }
 
 /* ✅ CREDIT WARNING - FIXED AT TOP */
@@ -8160,9 +8159,9 @@ select.profile-input option {
   min-height: 150px;
   scroll-behavior: smooth;
   scrollbar-width: thin;
- scrollbar-color: rgb(161 161 161) rgb(0 0 0);
- --scrollbar-thumb: hsl(var(--muted-foreground));
- --scrollbar-track: transparent;
+  scrollbar-color: rgb(161 161 161) rgb(0 0 0);
+  --scrollbar-thumb: hsl(var(--muted-foreground));
+  --scrollbar-track: transparent;
 }
 
 /* ✅ SCROLLBAR STYLING */
@@ -8283,7 +8282,7 @@ select.profile-input option {
   position: relative;
   gap: 8px;
   padding: 10px;
- background: rgb(54 70 120 / 40%);
+  background: rgb(54 70 120 / 40%);
   border-radius: 25px;
   border: 1px solid rgba(255, 255, 255, 0.2);
   backdrop-filter: blur(10px);
@@ -8302,6 +8301,7 @@ select.profile-input option {
   outline: none;
   resize: none;
   height: 44px;
+  min-width: 10px;
 }
 
 .chat-input::placeholder {
@@ -8429,6 +8429,7 @@ select.profile-input option {
   .chatbot-container {
     padding: 20px;
     gap: 6px;
+    padding-top: 30px;
   }
 
   .settings-options {
@@ -12517,7 +12518,7 @@ html {
 }
 
 .remedy-btn {
- background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.1);
 }
 .remedy-btn:hover {
   background: linear-gradient(135deg, #57f08d, #46fbe2);
@@ -13409,6 +13410,9 @@ html {
   width: 100%;
   padding: 40px;
   animation: fbSlideUp 0.5s ease-out;
+  display: grid;
+  justify-content: center;
+  align-items: center;
 }
 
 @keyframes fbSlideUp {
@@ -14038,9 +14042,6 @@ html {
   margin-top: 0.5rem;
 }
 
-
-
-
 /* ================================ */
 /* MINIMAL FOOTER - WHITE ICONS     */
 /* ================================ */
@@ -14068,7 +14069,6 @@ html {
 .footer-right {
   justify-self: end;
 }
-
 
 /* Left - Terms Button */
 .footer-left {
@@ -14104,7 +14104,7 @@ html {
   display: flex;
   align-items: center;
   justify-content: flex-end;
- 
+
   gap: 0.75rem;
 }
 
@@ -14136,5 +14136,271 @@ html {
   .footer-left,
   .footer-right {
     justify-content: center;
+  }
+}
+
+/* ================================
+   MOBILE MENU - YOUTUBE STYLE (max-width: 480px)
+   ================================ */
+
+@media (max-width: 480px) {
+  /* Hide the header logo on mobile (not in menu) */
+  .app-header .header-left {
+    display: none !important;
+  }
+
+  /* Make header flexbox with bottom alignment */
+  .app-header {
+    display: flex !important;
+    align-items: flex-end !important;
+    justify-content: space-between !important;
+    height: 75px !important;
+    padding-bottom: 10px !important;
+    position: relative !important;
+    z-index: 100 !important;
+  }
+
+  /* Position nav-container-center to the left - bottom aligned */
+  .nav-container-center {
+    display: flex !important;
+    align-items: flex-end !important;
+    justify-content: flex-start !important;
+    padding-left: 10px !important;
+  }
+
+  /* Keep header-right on the right - bottom aligned */
+  .header-right {
+    display: flex !important;
+    align-items: flex-end !important;
+    gap: 10px !important;
+    margin-left: auto !important;
+    padding-right: 10px !important;
+  }
+
+  /* Align credits display to bottom */
+  .credits-display {
+    display: flex !important;
+    align-items: center !important;
+    align-self: flex-end !important;
+  }
+
+  /* Align user menu to bottom */
+  .user-menu-container {
+    display: flex !important;
+    align-items: center !important;
+    align-self: flex-end !important;
+  }
+
+  /* Hide desktop navigation */
+  .nav-grid-desktop {
+    display: none !important;
+  }
+
+  /* Hide ENTIRE footer when mobile menu is open */
+  body.mobile-menu-open .app-footer {
+    display: none !important;
+  }
+
+  /* Prevent body scroll when menu is open */
+  body.mobile-menu-open {
+    overflow: hidden !important;
+  }
+
+  /* Nav toggle button styling - aligned to bottom */
+  .nav-toggle {
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    background: rgba(255, 255, 255, 0.1) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    border-radius: 8px !important;
+    padding: 8px 12px !important;
+    color: white !important;
+    cursor: pointer !important;
+    transition: all 0.3s ease !important;
+    font-size: 12px !important;
+    white-space: nowrap !important;
+  }
+
+  .nav-toggle:hover {
+    background: rgba(255, 255, 255, 0.15) !important;
+    border-color: rgba(255, 255, 255, 0.3) !important;
+  }
+
+  /* Dropdown arrow */
+  .dropdown-arrow {
+    font-size: 10px !important;
+    transition: transform 0.3s ease !important;
+    display: inline-block !important;
+  }
+
+  .dropdown-arrow.open {
+    transform: rotate(180deg) !important;
+  }
+
+  /* YOUTUBE-STYLE: Dark overlay behind menu */
+  body.mobile-menu-open::before {
+    content: "" !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    background: rgba(0, 0, 0, 0.7) !important;
+    z-index: 9999 !important;
+    animation: fadeInOverlay 0.25s ease !important;
+    pointer-events: none !important;
+  }
+
+  @keyframes fadeInOverlay {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  /* YOUTUBE-STYLE: Mobile nav menu - TRUE 100% HEIGHT, BRIGHTER COLORS */
+  .nav-dropdown-mobile .nav-menu {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 60% !important;
+    max-width: 340px !important;
+    height: 100% !important;
+    min-height: 100vh !important;
+    min-height: 100dvh !important;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%) !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.15) !important;
+    box-shadow: 2px 0 20px rgba(0, 0, 0, 0.5) !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    transform: translateX(-100%) !important;
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    z-index: 10001 !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+    pointer-events: auto !important;
+  }
+
+  /* Show menu when active - slide in */
+  .nav-dropdown-mobile .nav-menu.show {
+    transform: translateX(0) !important;
+  }
+
+  /* Logo section inside mobile menu - BRIGHTER */
+  .nav-dropdown-mobile .nav-menu .menu-logo-section {
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+    padding: 20px !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2) !important;
+    background: rgba(255, 255, 255, 0.05) !important;
+    text-decoration: none !important;
+    flex-shrink: 0 !important;
+    cursor: pointer !important;
+  }
+
+  .nav-dropdown-mobile .nav-menu .menu-logo-section:hover {
+    background: rgba(255, 255, 255, 0.08) !important;
+  }
+
+  .nav-dropdown-mobile .nav-menu .menu-logo-section .logo-icon {
+    width: 40px !important;
+    height: 40px !important;
+    background-size: contain !important;
+    background-repeat: no-repeat !important;
+    background-position: center !important;
+    display: inline-block !important;
+    flex-shrink: 0 !important;
+  }
+
+  .nav-dropdown-mobile .nav-menu .menu-logo-section .logo-text {
+    font-size: 20px !important;
+    font-weight: 600 !important;
+    margin: 0 !important;
+    color: #ffffff !important;
+  }
+
+  /* YOUTUBE-STYLE: Menu items - BRIGHTER COLORS */
+  .nav-dropdown-mobile .nav-item {
+    display: flex !important;
+    align-items: center !important;
+    gap: 24px !important;
+    padding: 20px !important;
+    margin: 0 !important;
+    text-decoration: none !important;
+    transition: all 0.15s ease !important;
+    border: none !important;
+    border-left: 3px solid transparent !important;
+    font-size: 16px !important;
+    line-height: 1.4 !important;
+    color: #f5f5f5 !important;
+    flex-shrink: 0 !important;
+    cursor: pointer !important;
+    pointer-events: auto !important;
+  }
+
+  /* Remove any pseudo-elements */
+  .nav-dropdown-mobile .nav-item::before,
+  .nav-dropdown-mobile .nav-item::after {
+    display: none !important;
+    content: none !important;
+  }
+
+  /* YOUTUBE-STYLE: Hover effect - BRIGHTER */
+  .nav-dropdown-mobile .nav-item:hover {
+    background: rgba(255, 255, 255, 0.15) !important;
+    color: #ffffff !important;
+  }
+
+  /* YOUTUBE-STYLE: Active/selected item - BRIGHT GOLD */
+  .nav-dropdown-mobile .nav-item.active {
+    background: rgba(255, 215, 0, 0.2) !important;
+    border-left: 4px solid #ffd700 !important;
+    font-weight: 500 !important;
+    color: #ffd700 !important;
+  }
+
+  /* Ensure nav-label inherits proper styling */
+  .nav-dropdown-mobile .nav-item .nav-label {
+    flex: 1 !important;
+    color: inherit !important;
+    pointer-events: none !important;
+  }
+
+  /* Remove scrollbar completely on mobile */
+  .nav-dropdown-mobile .nav-menu::-webkit-scrollbar {
+    width: 0 !important;
+    display: none !important;
+  }
+
+  .nav-dropdown-mobile .nav-menu {
+    -ms-overflow-style: none !important;
+    scrollbar-width: none !important;
+  }
+  .chatbot-container {
+    position: absolute;
+    height: 95vh;
+  }
+}
+
+/* ================================
+   HIDE FOOTER ON MOBILE VIEW (max-width: 480px)
+   ================================ */
+
+@media (max-width: 480px) {
+  /* Hide footer completely on mobile */
+  .app-footer,
+  footer {
+    display: none !important;
+  }
+
+  /* Adjust main content padding when footer is hidden */
+  .main-content.with-header-footer {
+    padding-bottom: 20px !important;
   }
 }

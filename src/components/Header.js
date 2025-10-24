@@ -4,11 +4,9 @@ import { useAuth } from '../AuthContext';
 import { endSession } from '../api';
 import InsufficientCreditsModal from './InsufficientCreditsModal';
 
-
-
 function Header() {
   const location = useLocation();
-  const navigate = useNavigate(); // ✅ Add this
+  const navigate = useNavigate();
   const { user, logout, updateUserProfile } = useAuth();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showNavMenu, setShowNavMenu] = useState(false);
@@ -62,7 +60,6 @@ function Header() {
     };
     const handleUserLoggedOut = () => {
       setShowUserMenu(false);
-      //setShowProfileModal(false);
       window.location.href = '/';
     };
     window.addEventListener('storage', handleStorageChange);
@@ -79,33 +76,23 @@ function Header() {
       '/home': 'Home',
       '/chat': 'Chat',
       '/credits': 'Credits',
-      // '/kundli': 'Kundli',
-      //'/horoscope': 'Horoscope',
-      //'/submuhrat': 'Submuhrat',
       '/call': 'Appointment',
       '/aboutus': 'AboutUs',
-      //'/pooja': 'Pooja',
-      //'/moon': 'Moon Tracker'
     };
     return pathMap[location.pathname] || 'AstroGuru';
   };
 
   // Navigation menu items WITHOUT credits
   const navItems = [
-    { path: '/home', label: 'Home' },
-    { path: '/chat', label: 'Chat' },
-    // { path: '/kundli', label: 'Kundli' },
-    //{ path: '/horoscope', label: 'Horoscope' },
-    //{ path: '/submuhrat', label: 'Submuhrat' },
-    //{ path: '/moon', label: 'Moon Tracker' },
-    //{ path: '/pooja', label: 'Pooja' },
-    { path: '/call', label: 'Appointment' },
-    { path: '/refer', label: 'Refer' },
-    { path: '/feedback', label: 'Feedback' },
-    { path: '/aboutus', label: 'AboutUs' },
-    { path: '/contactus', label: 'ContactUs' }
-
+    { path: '/home', label: 'Home', icon: '🏠' },
+    { path: '/chat', label: 'Chat', icon: '💬' },
+    { path: '/call', label: 'Appointment', icon: '📞' },
+    { path: '/refer', label: 'Refer', icon: '🎁' },
+    { path: '/feedback', label: 'Feedback', icon: '📝' },
+    { path: '/aboutus', label: 'About Us', icon: 'ℹ️' },
+    { path: '/contactus', label: 'Contact Us', icon: '📧' }
   ];
+
 
   // Religion options
   const religionOptions = [
@@ -113,11 +100,33 @@ function Header() {
     'Jainism', 'Judaism', 'Zoroastrianism', 'Bahai', 'Other'
   ];
 
+  // Detect if running in mobile app and adjust header padding
+  useEffect(() => {
+    const isMobileApp = () => {
+      if (window.matchMedia('(display-mode: standalone)').matches) {
+        return true;
+      }
+      if (window.ReactNativeWebView) {
+        return true;
+      }
+      const ua = navigator.userAgent || navigator.vendor || window.opera;
+      return /wv|WebView/i.test(ua);
+    };
+
+    if (isMobileApp()) {
+      console.log('🔍 Mobile app detected - applying safe area padding');
+      document.documentElement.classList.add('mobile-app-mode');
+    }
+  }, []);
+
   // Close menus when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (!event.target.closest('.user-menu-container')) setShowUserMenu(false);
-      if (!event.target.closest('.nav-dropdown-mobile')) setShowNavMenu(false);
+      if (!event.target.closest('.nav-dropdown-mobile')) {
+        setShowNavMenu(false);
+        document.body.classList.remove('mobile-menu-open');
+      }
       if (!event.target.closest('.profile-modal') && !event.target.closest('.profile-modal-trigger'));
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -132,9 +141,6 @@ function Header() {
     }
   };
 
-
-
-
   // Enhanced logout with confirmation and loading state
   const handleLogout = async () => {
     if (!window.confirm('Are you sure you want to logout? This will clear all your session data.')) {
@@ -147,12 +153,11 @@ function Header() {
 
     setIsLoggingOut(true);
     setShowUserMenu(false);
-    //setShowProfileModal(false);
 
     try {
       document.body.style.cursor = 'wait';
 
-      // ✅ STEP 1: End Session on Backend (NEW CODE STARTS HERE)
+      // ✅ STEP 1: End Session on Backend
       try {
         console.log('🔐 Step 1: Ending session on backend...');
         const userId = user?.userId || user?.id;
@@ -160,16 +165,15 @@ function Header() {
 
         console.log('📊 Session info:', {
           userId: userId,
-          sessionId: sessionId,  // ✅ Will show the full GUID
+          sessionId: sessionId,
           userName: user?.full_name
         });
 
         if (userId) {
           const sessionResponse = await endSession(
-            sessionId || null,  // ✅ KEEP AS STRING (GUID)
+            sessionId || null,
             userId
           );
-
 
           if (sessionResponse.data.success) {
             console.log('✅ Session ended successfully on backend');
@@ -183,12 +187,10 @@ function Header() {
       } catch (sessionError) {
         console.error('❌ Session end error:', sessionError);
         console.error('❌ Error details:', sessionError.response?.data || sessionError.message);
-        // Don't block logout if session end fails
         console.warn('⚠️ Continuing logout despite session error');
       }
-      // (NEW CODE ENDS HERE)
 
-      // ✅ STEP 2: Clear LocalStorage (YOUR EXISTING CODE CONTINUES)
+      // ✅ STEP 2: Clear LocalStorage
       console.log('🗑️ Step 2: Clearing localStorage...');
       const keysToRemove = [];
       for (let i = 0; i < localStorage.length; i++) {
@@ -206,7 +208,7 @@ function Header() {
       keysToRemove.forEach(key => localStorage.removeItem(key));
       console.log('✅ LocalStorage cleared');
 
-      // ✅ STEP 3: Clear SessionStorage (YOUR EXISTING CODE)
+      // ✅ STEP 3: Clear SessionStorage
       console.log('🗑️ Step 3: Clearing sessionStorage...');
       const sessionKeysToRemove = [];
       for (let i = 0; i < sessionStorage.length; i++) {
@@ -224,14 +226,14 @@ function Header() {
       sessionKeysToRemove.forEach(key => sessionStorage.removeItem(key));
       console.log('✅ SessionStorage cleared');
 
-      // ✅ STEP 4: Dispatch Events (YOUR EXISTING CODE)
+      // ✅ STEP 4: Dispatch Events
       console.log('📡 Step 4: Dispatching logout events...');
       window.dispatchEvent(new CustomEvent('userLoggedOut'));
       window.dispatchEvent(new CustomEvent('clearAllData'));
       window.dispatchEvent(new CustomEvent('clearChat'));
       console.log('✅ Events dispatched');
 
-      // ✅ STEP 5: Auth Logout (YOUR EXISTING CODE)
+      // ✅ STEP 5: Auth Logout
       console.log('🔐 Step 5: Calling auth context logout...');
       logout();
       console.log('✅ Auth context logout complete');
@@ -240,7 +242,7 @@ function Header() {
       console.log('✅ LOGOUT PROCESS COMPLETE');
       console.log('═══════════════════════════════════════════════');
 
-      // ✅ STEP 6: Redirect (YOUR EXISTING CODE)
+      // ✅ STEP 6: Redirect
       setTimeout(() => {
         console.log('🏠 Redirecting to home page...');
         window.location.href = '/';
@@ -258,15 +260,17 @@ function Header() {
     }
   };
 
-
-  const handleMobileMenuClick = () => setShowNavMenu(false);
+  // ✅ UPDATED: Close menu and remove body class
+  const handleMobileMenuClick = () => {
+    setShowNavMenu(false);
+    document.body.classList.remove('mobile-menu-open');
+  };
 
   const handleProfileClick = () => {
     console.log('Profile clicked');
-    navigate('/profile'); // ✅ Navigate to profile page
+    navigate('/profile');
     setShowUserMenu(false);
   };
-
 
   const handleEditToggle = (field) => {
     setEditMode(prev => ({
@@ -326,15 +330,9 @@ function Header() {
   return (
     <>
       {isLoggingOut && (
-        <div>
-          <div style={{
-            background: 'white',
-            padding: '2rem',
-            borderRadius: '12px',
-            textAlign: 'center',
-            boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3)'
-          }}>
-            <div></div>
+        <div className="logout-overlay">
+          <div className="logout-message">
+            <div className="logout-spinner"></div>
             <p>Logging out securely...</p>
           </div>
         </div>
@@ -349,10 +347,6 @@ function Header() {
           }}
         />
       )}
-
-      {/* Profile Modal */}
-
-
 
       <header className="app-header">
         <div className="header-left">
@@ -372,6 +366,7 @@ function Header() {
             <h1 className="logo-text">AastroG</h1>
           </Link>
         </div>
+
         {/* Centered Navigation Container */}
         <div className="nav-container-center">
           {/* Desktop: Horizontal Navigation Grid */}
@@ -380,23 +375,46 @@ function Header() {
               <Link
                 key={item.path}
                 to={item.path}
-                className={`nav-grid-item ${location.pathname === item.path ? 'active' : ''}`}
+                className={`nav-item ${location.pathname === item.path ? 'active' : ''}`}
+                onClick={handleMobileMenuClick}
               >
                 <span className="nav-label">{item.label}</span>
               </Link>
             ))}
+
           </div>
-          {/* Mobile: Dropdown Navigation */}
+
           <div className="nav-dropdown-mobile">
             <button
               className="nav-toggle"
-              onClick={() => setShowNavMenu(!showNavMenu)}
+              onClick={() => {
+                setShowNavMenu(!showNavMenu);
+                document.body.classList.toggle('mobile-menu-open');
+              }}
             >
               <span className="current-page">☰ Menu</span>
               <span className={`dropdown-arrow ${showNavMenu ? 'open' : ''}`}>▼</span>
             </button>
             {showNavMenu && (
-              <div className="nav-menu">
+              <div className={`nav-menu ${showNavMenu ? 'show' : ''}`}>
+                {/* Logo at the top of mobile menu */}
+                <Link to="/home" className="menu-logo-section" onClick={handleMobileMenuClick}>
+                  <span
+                    className="logo-icon"
+                    style={{
+                      backgroundImage: 'url(/uploads/logo.png)',
+                      backgroundSize: 'contain',
+                      backgroundRepeat: 'no-repeat',
+                      backgroundPosition: 'center',
+                      width: '40px',
+                      height: '40px',
+                      display: 'inline-block'
+                    }}
+                  ></span>
+                  <h1 className="logo-text">AastroG</h1>
+                </Link>
+
+                {/* Menu items */}
                 {navItems.map((item) => (
                   <Link
                     key={item.path}
@@ -410,7 +428,9 @@ function Header() {
               </div>
             )}
           </div>
+
         </div>
+
         {/* Header Right: Credits + User Menu */}
         <div className="header-right">
           {/* Credits Display */}
@@ -421,6 +441,7 @@ function Header() {
             </span>
             {user?.credits < 10 && <span className="warning-icon">⚠️</span>}
           </Link>
+
           {/* User Menu */}
           <div className="user-menu-container">
             <div
@@ -445,6 +466,7 @@ function Header() {
                 {user?.full_name?.split(' ')[0] || 'User'}
               </span>
             </div>
+
             {showUserMenu && (
               <div className="user-dropdown-menu">
                 <div className="dropdown-header">
@@ -471,6 +493,7 @@ function Header() {
                     </div>
                   </div>
                 </div>
+
                 <button
                   className="dropdown-item profile-modal-trigger"
                   onClick={handleProfileClick}
@@ -478,7 +501,9 @@ function Header() {
                   <span className="dropdown-icon">👤</span>
                   Profile
                 </button>
+
                 <div className="dropdown-divider"></div>
+
                 <button
                   className="dropdown-item logout-item"
                   onClick={handleLogout}

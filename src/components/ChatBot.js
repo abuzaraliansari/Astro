@@ -176,7 +176,7 @@ function ChatBot() {
       return messages[Math.floor(Math.random() * messages.length)];
     }
 
-    return "🔮 AastroG is consulting the cosmic energies... ✨";
+    return "AastroG is consulting the cosmic energies...";
   };
 
   const scrollToBottom = () => {
@@ -1130,7 +1130,7 @@ function ChatBot() {
 
       if (response.success) {
         const userName = user?.full_name || user?.given_name || 'Beta';
-        const welcomeMessage = (PROMPTS.welcome[selectedLanguage] || PROMPTS.welcome.ENGLISH)
+        const welcomeMessage = (PROMPTS.welcome[selectedLanguage] || PROMPTS.welcome.Hinglish)
           .replace('{name}', userName);
         const fullMessage = `${welcomeMessage}\n\n${response.reply}`;
 
@@ -1150,7 +1150,7 @@ function ChatBot() {
 
     } catch (error) {
       console.error('❌ Error generating horoscope:', error);
-      const welcomeMessage = PROMPTS.welcomeMessage[selectedLanguage] || PROMPTS.welcomeMessage.ENGLISH;
+      const welcomeMessage = PROMPTS.welcomeMessage[selectedLanguage] || PROMPTS.welcomeMessage.Hinglish;
       push({
         message: welcomeMessage,
         direction: 'incoming',
@@ -1990,7 +1990,7 @@ ${cleanMessageForDB}`;
       {/* Main Chat Area */}
       <div className="chat-area" >
         <div className="chat-header">
-          <span>{PROMPTS.greetings[selectedLanguage] || PROMPTS.greetings.ENGLISH}</span>
+          <span>{PROMPTS.greetings[selectedLanguage] || PROMPTS.greetings.Hinglish}</span>
 
           <div className="settings-container">
             <div className="settings-row" ref={settingsRef}>
@@ -2223,7 +2223,7 @@ ${cleanMessageForDB}`;
               <div className="analysis-buttons-grid">
                 {(() => {
                   // Get button labels based on current language
-                  const labels = PROMPTS.buttonLabels[selectedLanguage] || PROMPTS.buttonLabels.ENGLISH;
+                  const labels = PROMPTS.buttonLabels[selectedLanguage] || PROMPTS.buttonLabels.Hinglish;
 
                   // ✅ If a button is selected, show only that button
                   if (selectedAnalysisType) {
@@ -2943,14 +2943,6 @@ ${cleanMessageForDB}`;
       {showTypeConfirmDialog && (
         <div className="feedback-notification-overlay">
           <div className="feedback-notification type-confirmation-dialog">
-            <button
-              className="feedback-close-btn"
-              onClick={() => setShowTypeConfirmDialog(false)}
-              aria-label="Close dialog"
-            >
-              ×
-            </button>
-
             <div className="feedback-icon">⚠️</div>
 
             <h3 className="feedback-title">Message Type Not Selected</h3>
@@ -2970,19 +2962,15 @@ ${cleanMessageForDB}`;
                 className="feedback-btn feedback-btn-primary"
                 onClick={handleConfirmFollowUp}
               >
-                Yes, Use Follow-up
+                Yes,Follow-up
               </button>
 
               <button
                 className="feedback-btn feedback-btn-secondary"
                 onClick={handleCancelTypeSelection}
               >
-                No, Let Me Choose
+                Let Me Choose
               </button>
-            </div>
-
-            <div className="feedback-footer">
-              Choose Follow-up to continue or select your preferred type
             </div>
           </div>
         </div>
